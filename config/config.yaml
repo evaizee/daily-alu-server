@@ -1,0 +1,33 @@
+server:
+  port: 3000
+  env: development
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: "postgres"
+  database: daily_alu_local
+  name: daily_alu_local
+  sslmode: disable
+
+jwt:
+  secret: "your-super-secret-key-change-this-in-production"
+  expiry: 24 # hours
+
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+
+aws:
+  region: ap-southeast-1
+  s3:
+    bucket: dailyalu-storage
+  ses:
+    sender: no-reply@dailyalu.com
+
+logging:
+  level: debug
+  format: json

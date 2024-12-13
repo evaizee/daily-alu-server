@@ -1,0 +1,68 @@
+package cmd
+
+import (
+	"dailyalu-server/internal/container"
+	"dailyalu-server/internal/router"
+	"dailyalu-server/pkg/app_log"
+	"dailyalu-server/pkg/db/postgres"
+	"fmt"
+	"github.com/gofiber/fiber/v2"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"time"
+)
+
+var serveCmd = &cobra.Command{
+	Use:   "serve",
+	Short: "Start the API server",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// Initialize logger
+		if err := app_log.Init(
+			viper.GetString("logging.level"),
+			viper.GetString("logging.format"),
+		); err != nil {
+			return fmt.Errorf("failed to initialize logger: %w", err)
+		}
+
+		// Initialize database
+		db, err := postgres.NewConnection(postgres.Config{
+			Host:     viper.GetString("database.host"),
+			Port:     viper.GetInt("database.port"),
+			User:     viper.GetString("database.user"),
+			Password: viper.GetString("database.password"),
+			DBName:   viper.GetString("database.name"),
+			SSLMode:  viper.GetString("database.sslmode"),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to connect to database: %w", err)
+		}
+
+		// Initialize dependency container
+		cont := container.NewContainer(
+			db,
+			viper.GetString("jwt.secret"),
+			viper.GetDuration("jwt.expiry")*time.Hour,
+		)
+		defer cont.Close()
+
+		// Initialize Fiber app
+		app := fiber.New(fiber.Config{
+			AppName: "DailyAlu API Server",
+		})
+
+		// Setup routes
+		router.SetupUserRoutes(
+			app,
+			cont.GetUserHandler(),
+			cont.GetSecurityMiddleware(),
+		)
+
+		// Start server
+		port := viper.GetInt("server.port")
+		return app.Listen(fmt.Sprintf(":%d", port))
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(serveCmd)
+}
