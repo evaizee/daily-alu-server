@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
+    status SMALLINT NOT NULL DEFAULT 0 CHECK (status IN (0, 10, 20)),
+    email_verification_token VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL DEFAULT 'user',
     last_login TIMESTAMP,
     created_at TIMESTAMP NOT NULL,

@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DAILYALU_DATABASE_HOST=postgres
+      - DAILYALU_DATABASE_PORT=5432
+      - DAILYALU_DATABASE_USER=postgres
+      - DAILYALU_DATABASE_PASSWORD=postgres
+      - DAILYALU_DATABASE_NAME=daily_alu_local
+      - DAILYALU_DATABASE_SSLMODE=disable
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app
+      - go-modules:/go/pkg/mod
+    command: ["./server", "serve", "--config", "config/config.yaml"]
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "3001:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=daily_alu_local
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  migrate:
+    image: migrate/migrate
+    volumes:
+      - ./database/migrations:/migrations
+    command: ["-path", "/migrations", "-database",  "postgres://postgres:postgres@postgres:5432/daily_alu_local?sslmode=disable", "up"]
+    depends_on:
+      - postgres
+
+volumes:
+  postgres-data:
+  go-modules:
