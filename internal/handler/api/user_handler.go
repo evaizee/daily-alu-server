@@ -123,3 +123,30 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
+
+// VerifyEmail handles email verification
+func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
+    // Check query parameter first
+    token := c.Query("token")
+    
+    // If not in query, check path parameter
+    if token == "" {
+        token = c.Params("token")
+    }
+
+    if token == "" {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Verification token is required",
+        })
+    }
+
+    if err := h.userUseCase.VerifyEmail(c.Context(), token); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": err.Error(),
+        })
+    }
+
+    return c.JSON(fiber.Map{
+        "message": "Email verified successfully",
+    })
+}

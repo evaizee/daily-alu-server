@@ -47,6 +47,8 @@ func NewContainer(db *sql.DB, jwtSecret string, jwtExpiry time.Duration) *Contai
 	// Initialize repositories
 	c.userRepository = repository.NewPostgresUserRepository(db)
 
+	c.emailVerificationService = email.NewVerificationService()
+
 	// Initialize use cases
 	c.userUseCase = usecase.NewUserUseCase(c.userRepository, c.jwtManager, c.emailVerificationService)
 

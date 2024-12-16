@@ -15,6 +15,7 @@ func SetupUserRoutes(app *fiber.App, userHandler *api.UserHandler, securityMiddl
 	auth := app.Group("/api/auth")
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
+	auth.Get("/verify-email/:token?", userHandler.VerifyEmail)
 
 	// Protected routes
 	users := app.Group("/api/users")
