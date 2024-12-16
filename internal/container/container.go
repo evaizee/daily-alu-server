@@ -1,13 +1,16 @@
 package container
 
 import (
-	"database/sql"
 	"dailyalu-server/internal/handler/api"
 	"dailyalu-server/internal/middleware"
 	"dailyalu-server/internal/module/user/repository"
 	"dailyalu-server/internal/module/user/usecase"
 	"dailyalu-server/internal/security/jwt"
+	"dailyalu-server/internal/service/email"
+	"database/sql"
 	"time"
+
+	//"github.com/docker/docker/volume/service"
 )
 
 // Container holds all the dependencies for the application
@@ -27,6 +30,9 @@ type Container struct {
 
 	// Middleware
 	securityMiddleware *middleware.SecurityMiddleware
+
+	//Email Verification Service
+	emailVerificationService *email.VerificationService
 }
 
 // NewContainer creates a new dependency injection container
@@ -42,7 +48,7 @@ func NewContainer(db *sql.DB, jwtSecret string, jwtExpiry time.Duration) *Contai
 	c.userRepository = repository.NewPostgresUserRepository(db)
 
 	// Initialize use cases
-	c.userUseCase = usecase.NewUserUseCase(c.userRepository, c.jwtManager)
+	c.userUseCase = usecase.NewUserUseCase(c.userRepository, c.jwtManager, c.emailVerificationService)
 
 	// Initialize handlers
 	c.userHandler = api.NewUserHandler(c.userUseCase)

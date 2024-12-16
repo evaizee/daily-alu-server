@@ -4,6 +4,8 @@ import (
 	"dailyalu-server/internal/module/user/domain"
 	"dailyalu-server/internal/module/user/usecase"
 	"dailyalu-server/internal/validator"
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -18,12 +20,19 @@ func NewUserHandler(userUseCase usecase.IUserUseCase) *UserHandler {
 }
 
 func (h *UserHandler) Register(c *fiber.Ctx) error {
-	var req domain.RegisterRequest
-	if err := validator.ValidateRequest(c, &req); err != nil {
+	req := &domain.RegisterRequest{}
+
+	if err := c.BodyParser(req); err != nil {
+        fmt.Println("error = ",err)
+        return c.SendStatus(500)
+    }
+
+	if err := validator.ValidateRequest(c, req); err != nil {
 		return err
 	}
 
-	user, err := h.userUseCase.Register(req)
+	user, err := h.userUseCase.Register(c.Context(), req)
+	
 	if err == usecase.ErrUserAlreadyExists {
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
 			"error": err.Error(),
@@ -39,7 +48,7 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) Login(c *fiber.Ctx) error {
-	var req domain.LoginRequest
+	var req *domain.LoginRequest
 	if err := validator.ValidateRequest(c, &req); err != nil {
 		return err
 	}
