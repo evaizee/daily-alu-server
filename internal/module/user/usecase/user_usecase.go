@@ -99,32 +99,38 @@ func (uc *userUseCase) VerifyEmail(ctx context.Context, token string) error {
 	return nil
 }
 
-func (uc *userUseCase) Login(req *domain.LoginRequest) (string, error) {
+func (uc *userUseCase) Login(req *domain.LoginRequest) (string, string, error) {
+	// Get user by email
 	user, err := uc.repo.GetByEmail(req.Email)
 	if err != nil {
-		return "", err
+		return "", "", fmt.Errorf("failed to get user: %w", err)
 	}
 	if user == nil {
-		return "", ErrInvalidCredentials
+		return "", "", ErrInvalidCredentials
 	}
 
+	// Verify password
 	if !password.Verify(req.Password, user.PasswordHash) {
-		return "", ErrInvalidCredentials
+		return "", "", ErrInvalidCredentials
 	}
 
-	// Update last login
-	now := time.Now()
-	if err := uc.repo.UpdateLastLogin(user.ID, now); err != nil {
-		return "", err
-	}
-
-	// Generate JWT token
-	token, err := uc.jwtManager.Generate(user.ID, user.Email, user.Role)
+	// Generate token pair
+	accessToken, refreshToken, err := uc.jwtManager.GenerateTokenPair(user.ID, user.Email, user.Role)
 	if err != nil {
-		return "", err
+		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
-	return token, nil
+	return accessToken, refreshToken, nil
+}
+
+func (uc *userUseCase) RefreshToken(refreshToken string) (string, string, error) {
+	// Use JWT manager to validate and generate new tokens
+	accessToken, newRefreshToken, err := uc.jwtManager.RefreshToken(refreshToken)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to refresh token: %w", err)
+	}
+
+	return accessToken, newRefreshToken, nil
 }
 
 func (uc *userUseCase) GetUser(id string) (*domain.User, error) {

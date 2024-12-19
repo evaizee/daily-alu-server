@@ -41,7 +41,9 @@ var serveCmd = &cobra.Command{
 		cont := container.NewContainer(
 			db,
 			viper.GetString("jwt.secret"),
+			viper.GetString("jwt.refresh-secret-key"),
 			viper.GetDuration("jwt.expiry")*time.Hour,
+			viper.GetDuration("jwt.refresh-expiry")*time.Hour,
 		)
 		defer cont.Close()
 

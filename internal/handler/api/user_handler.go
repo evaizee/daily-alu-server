@@ -48,12 +48,18 @@ func (h *UserHandler) Register(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) Login(c *fiber.Ctx) error {
-	var req *domain.LoginRequest
-	if err := validator.ValidateRequest(c, &req); err != nil {
+	req := &domain.LoginRequest{}
+
+	if err := c.BodyParser(req); err != nil {
+        fmt.Println("error = ",err)
+        return c.SendStatus(500)
+    }
+
+	if err := validator.ValidateRequest(c, req); err != nil {
 		return err
 	}
 
-	token, err := h.userUseCase.Login(req)
+	accessToken, refreshToken, err := h.userUseCase.Login(req)
 	if err == usecase.ErrInvalidCredentials {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "Invalid email or password",
@@ -66,7 +72,8 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"token": token,
+		"access_token": accessToken,
+		"refresh_token": refreshToken,
 	})
 }
 
@@ -148,5 +155,40 @@ func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
 
     return c.JSON(fiber.Map{
         "message": "Email verified successfully",
+    })
+}
+
+// RefreshTokenRequest represents the request body for token refresh
+type RefreshTokenRequest struct {
+    RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+// RefreshToken handles token refresh requests
+func (h *UserHandler) RefreshToken(c *fiber.Ctx) error {
+    req := &RefreshTokenRequest{}
+    if err := c.BodyParser(req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error": "Invalid request body",
+        })
+    }
+
+    if err := validator.ValidateStruct(req); err != nil {
+        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+            "error":   "Validation failed",
+            "details": err,
+        })
+    }
+
+    // Generate new token pair using refresh token
+    accessToken, newRefreshToken, err := h.userUseCase.RefreshToken(req.RefreshToken)
+    if err != nil {
+        return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+            "error": "Invalid or expired refresh token",
+        })
+    }
+
+    return c.JSON(fiber.Map{
+        "access_token": accessToken,
+        "refresh_token": newRefreshToken,
     })
 }

@@ -13,7 +13,10 @@ database:
 
 jwt:
   secret: "your-super-secret-key-change-this-in-production"
+  refresh-secret-key: "your-super-secret-refresh-key-change-this-in-production"
   expiry: 24 # hours
+  refresh-expiry: 120 # hours
+
 
 redis:
   host: localhost

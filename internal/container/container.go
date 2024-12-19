@@ -36,13 +36,13 @@ type Container struct {
 }
 
 // NewContainer creates a new dependency injection container
-func NewContainer(db *sql.DB, jwtSecret string, jwtExpiry time.Duration) *Container {
+func NewContainer(db *sql.DB, jwtSecret, jwtRefreshSecretKey string, jwtExpiry, jwtRefreshExpiry time.Duration) *Container {
 	c := &Container{
 		db: db,
 	}
 
 	// Initialize JWT manager
-	c.jwtManager = jwt.NewJWTManager(jwtSecret, jwtExpiry)
+	c.jwtManager = jwt.NewJWTManager(jwtSecret, jwtRefreshSecretKey, jwtExpiry, jwtRefreshExpiry)
 
 	// Initialize repositories
 	c.userRepository = repository.NewPostgresUserRepository(db)
