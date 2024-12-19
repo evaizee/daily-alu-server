@@ -19,7 +19,7 @@ go.work
 # Local development configurations
 /config/*.local.yaml
 /config/*.local.yml
-config.yaml
+*config.yaml
 .env
 .env.local
 *.env
