@@ -4,6 +4,7 @@ import (
 	"dailyalu-server/internal/module/user/domain"
 	"dailyalu-server/internal/module/user/usecase"
 	"dailyalu-server/internal/validator"
+	"dailyalu-server/pkg/app_errors"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
@@ -21,30 +22,36 @@ func NewUserHandler(userUseCase usecase.IUserUseCase) *UserHandler {
 
 func (h *UserHandler) Register(c *fiber.Ctx) error {
 	req := &domain.RegisterRequest{}
-
 	if err := c.BodyParser(req); err != nil {
         fmt.Println("error = ",err)
-        return c.SendStatus(500)
+        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err,
+		})
     }
 
 	if err := validator.ValidateRequest(c, req); err != nil {
+		fmt.Println(err)
 		return err
 	}
 
-	user, err := h.userUseCase.Register(c.Context(), req)
-	
-	if err == usecase.ErrUserAlreadyExists {
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
+	_, err := h.userUseCase.Register(c.Context(), req)
+
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Internal server error",
+		fmt.Println(err)
+		errorStatus := fiber.StatusInternalServerError
+		if err == usecase.ErrUserAlreadyExists {
+			errorStatus = fiber.StatusConflict
+		}
+
+		return c.Status(errorStatus).JSON(fiber.Map{
+			"code": errorStatus,
+			"message": err.Error(),
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(user)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"message": "Your account is almost ready! To unlock all of our features, please verify your email address.",
+	})
 }
 
 func (h *UserHandler) Login(c *fiber.Ctx) error {
@@ -62,7 +69,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	accessToken, refreshToken, err := h.userUseCase.Login(req)
 	if err == usecase.ErrInvalidCredentials {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid email or password",
+			"error": "Invalid email or password adfasfsd",
 		})
 	}
 	if err != nil {
@@ -142,15 +149,17 @@ func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
     }
 
     if token == "" {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": "Verification token is required",
-        })
+			return app_errors.NewValidationError("Verification token is required").AddMetadata("token",token)
+        // return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+        //     "error": "Verification token is required",
+        // })
     }
 
     if err := h.userUseCase.VerifyEmail(c.Context(), token); err != nil {
-        return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-            "error": err.Error(),
-        })
+        // return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+        //     "error": err.Error(),
+        // })
+			return app_errors.NewBadRequestError(err.Error()).WithInternal(err).AddMetadata("token",token)
     }
 
     return c.JSON(fiber.Map{

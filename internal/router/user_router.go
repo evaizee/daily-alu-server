@@ -30,18 +30,20 @@ func SetupUserRoutes(app *fiber.App, userHandler *api.UserHandler, securityMiddl
 	 // Add API key validation
 
 	// Public routes
-	auth := app.Group("/api/auth")
+	auth := app.Group("/api/v1/auth")
 
 	auth.Get("/verify-email/:token?", userHandler.VerifyEmail)
 
 	app.Use(apiKeyMiddleware.ValidateAPIKey())
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
+
+	auth.Use(securityMiddleware.JWT())
 	auth.Post("/refresh-token", userHandler.RefreshToken)  // Add refresh token endpoint before API key middleware
 	
 
 	// Protected routes
-	users := app.Group("/api/users")
+	users := app.Group("/api/v1/users")
 	users.Use(securityMiddleware.JWT())
 
 	// Routes accessible by all authenticated users

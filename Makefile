@@ -30,6 +30,11 @@ run:
 	@echo "Running server..."
 	go run main.go serve --config $(CONFIG)
 
+# Run the application in debug mode
+debug:
+	@echo "Running server in debug mode..."
+	dlv debug main.go -- serve --config $(CONFIG)
+
 # Run tests
 test:
 	@echo "Running tests..."
@@ -64,6 +69,7 @@ help:
 	@echo "  make deps          - Install project dependencies"
 	@echo "  make build         - Build the application"
 	@echo "  make run          - Run the application"
+	@echo "  make debug        - Run the application in debug mode"
 	@echo "  make test         - Run tests"
 	@echo "  make lint         - Run linter"
 	@echo "  make migrate-up    - Run database migrations"

@@ -72,9 +72,9 @@ func (m *SecurityMiddleware) RoleAuth(roles ...string) fiber.Handler {
 // CORS middleware configuration
 func CORSConfig() fiber.Handler {
 	return cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000, https://*.dailyalu.com",
+		AllowOrigins:     "http://localhost:5173,https://*.dailyalu.com",
 		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Requested-With, X-API-Key",
 		ExposeHeaders:    "Content-Length",
 		AllowCredentials: true,
 		MaxAge:           24 * 60 * 60, // 24 hours

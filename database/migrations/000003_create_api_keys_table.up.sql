@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS api_keys (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id VARCHAR(255) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     key_value VARCHAR(255) NOT NULL UNIQUE,
     status VARCHAR(50) NOT NULL DEFAULT 'active',
@@ -10,9 +10,6 @@ CREATE TABLE IF NOT EXISTS api_keys (
     allowed_ips TEXT[] DEFAULT '{}',
     rotation_date TIMESTAMP WITH TIME ZONE,
     sunset_date TIMESTAMP WITH TIME ZONE,
-    successor_key_id UUID REFERENCES api_keys(id),
-    predecessor_key_id UUID REFERENCES api_keys(id),
-    created_by UUID REFERENCES users(id),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -31,5 +28,3 @@ COMMENT ON COLUMN api_keys.rate_limit IS 'Maximum number of requests allowed per
 COMMENT ON COLUMN api_keys.allowed_ips IS 'List of allowed IP addresses/ranges';
 COMMENT ON COLUMN api_keys.rotation_date IS 'Date when key rotation should begin';
 COMMENT ON COLUMN api_keys.sunset_date IS 'Date when key will be fully revoked';
-COMMENT ON COLUMN api_keys.successor_key_id IS 'Reference to the new key during rotation';
-COMMENT ON COLUMN api_keys.predecessor_key_id IS 'Reference to the old key being replaced';

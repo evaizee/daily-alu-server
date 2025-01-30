@@ -5,7 +5,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-var logger *zap.Logger
+var Logger *zap.Logger
 
 func Init(level string, format string) error {
 	config := zap.NewProductionConfig()
@@ -32,7 +32,7 @@ func Init(level string, format string) error {
 	}
 
 	var err error
-	logger, err = config.Build()
+	Logger, err = config.Build()
 	if err != nil {
 		return err
 	}
@@ -41,21 +41,21 @@ func Init(level string, format string) error {
 }
 
 func Debug(msg string, fields ...zapcore.Field) {
-	logger.Debug(msg, fields...)
+	Logger.Debug(msg, fields...)
 }
 
 func Info(msg string, fields ...zapcore.Field) {
-	logger.Info(msg, fields...)
+	Logger.Info(msg, fields...)
 }
 
 func Warn(msg string, fields ...zapcore.Field) {
-	logger.Warn(msg, fields...)
+	Logger.Warn(msg, fields...)
 }
 
 func Error(msg string, fields ...zapcore.Field) {
-	logger.Error(msg, fields...)
+	Logger.Error(msg, fields...)
 }
 
 func Fatal(msg string, fields ...zapcore.Field) {
-	logger.Fatal(msg, fields...)
+	Logger.Fatal(msg, fields...)
 }

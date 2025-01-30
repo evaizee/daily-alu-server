@@ -3,7 +3,6 @@ package repository
 import (
 	"dailyalu-server/internal/module/user/domain"
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -47,7 +46,6 @@ func (r *postgresUserRepository) GetByID(id string) (*domain.User, error) {
 
 func (r *postgresUserRepository) GetByEmail(email string) (*domain.User, error) {
 	user := &domain.User{}
-	fmt.Println("pears")
 	query := `
 		SELECT id, email, name, password_hash, status, email_verification_token, role, last_login, created_at, updated_at
 		FROM users

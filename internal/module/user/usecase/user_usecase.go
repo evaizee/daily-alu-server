@@ -30,6 +30,10 @@ func NewUserUseCase(repo repository.IUserRepository, jwtManager *jwt.JWTManager,
 
 // Implementation of UserUseCase interface
 func (uc *userUseCase) Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error) {
+	if req.Password != req.ConfirmPassword {
+		return nil, ErrDifferentConfirmationPassword
+	}
+	
 	// Check if user already exists
 	existingUser, err := uc.repo.GetByEmail(req.Email)
 	if err != nil {
@@ -76,6 +80,7 @@ func (uc *userUseCase) Register(ctx context.Context, req *domain.RegisterRequest
 }
 
 func (uc *userUseCase) VerifyEmail(ctx context.Context, token string) error {
+	fmt.Println("verify email")
 	user, err := uc.repo.GetByVerificationToken(token)
 	if err != nil {
 		return fmt.Errorf("failed to get user by token: %w", err)

@@ -52,10 +52,19 @@ var serveCmd = &cobra.Command{
 			AppName: "DailyAlu API Server",
 		})
 
+		// Add global middleware
+		app.Use(cont.GetErrorMiddleware().Handle())
+
 		// Setup routes
 		router.SetupUserRoutes(
 			app,
 			cont.GetUserHandler(),
+			cont.GetSecurityMiddleware(),
+		)
+
+		router.SetupActivityRoutes(
+			app,
+			cont.GetActivityHandler(),
 			cont.GetSecurityMiddleware(),
 		)
 
