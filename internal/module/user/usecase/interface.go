@@ -8,10 +8,12 @@ import (
 // UserUseCase defines the interface for user business logic
 type IUserUseCase interface {
 	Register(ctx context.Context, req *domain.RegisterRequest) (*domain.User, error)
-	Login(req *domain.LoginRequest) (string, string, error)
+	Login(req *domain.LoginRequest) (*domain.LoginResponse, error)
 	GetUser(id string) (*domain.User, error)
-	UpdateUser(id, email, name string) (*domain.User, error)
+	UpdateUser(req *domain.UpdateUserRequest) (*domain.User, error)
 	DeleteUser(id string) error
 	VerifyEmail(ctx context.Context, token string) error
 	RefreshToken(refreshToken string) (string, string, error)
+	UpdatePassword(request *domain.UpdatePasswordRequest) error
+	//todo: add forgot password, reset password and change password
 }

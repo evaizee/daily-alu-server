@@ -14,4 +14,5 @@ type IUserRepository interface {
 	Delete(id string) error
 	UpdateLastLogin(id string, lastLogin time.Time) error
 	GetByVerificationToken(token string) (*domain.User, error)
+	UpdatePassword(id, password string) error
 }

@@ -100,7 +100,7 @@ func (r *activityRepository) Update(ctx context.Context, activity *domain.Activi
 }
 
 func (r *activityRepository) Delete(ctx context.Context, id int) error {
-	query := "DELETE FROM activities WHERE id = $1"
+	query := "UPDATE activities SET status = 20 WHERE id = $1"
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete activity: %w", err)

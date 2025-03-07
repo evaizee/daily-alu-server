@@ -33,9 +33,9 @@ func SetupActivityRoutes(app *fiber.App, activityHandler *api.ActivityHandler, s
 	activities.Use(securityMiddleware.JWT())
 
 	// Routes
+	activities.Get("/search", activityHandler.Search)
 	activities.Post("/", activityHandler.Create)
 	activities.Get("/:id", activityHandler.Get)
 	activities.Put("/:id", activityHandler.Update)
 	activities.Delete("/:id", activityHandler.Delete)
-	activities.Get("/search", activityHandler.Search)
 }

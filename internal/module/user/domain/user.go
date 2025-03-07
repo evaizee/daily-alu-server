@@ -12,16 +12,16 @@ const (
 )
 
 type User struct {
-	ID                    string     `json:"id"`
-	Email                 string     `json:"email"`
-	Name                  string     `json:"name"`
-	PasswordHash          string     `json:"-"`
-	Status                int16      `json:"status"`
+	ID                     string     `json:"id"`
+	Email                  string     `json:"email"`
+	Name                   string     `json:"name"`
+	PasswordHash           string     `json:"-"`
+	Status                 int16      `json:"status"`
 	EmailVerificationToken string     `json:"-"`
-	Role                  string     `json:"role"`
-	LastLogin             *time.Time `json:"last_login,omitempty"`
-	CreatedAt             time.Time  `json:"created_at"`
-	UpdatedAt             time.Time  `json:"updated_at"`
+	Role                   string     `json:"role"`
+	LastLogin              *time.Time `json:"last_login,omitempty"`
+	CreatedAt              time.Time  `json:"created_at"`
+	UpdatedAt              time.Time  `json:"updated_at"`
 }
 
 // IsActive checks if the user is active
@@ -40,8 +40,32 @@ type LoginRequest struct {
 }
 
 type RegisterRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Password string `json:"password" validate:"required,min=8"`
-	Name     string `json:"name" validate:"required"`
+	Email           string `json:"email" validate:"required,email"`
+	Password        string `json:"password" validate:"required,min=8"`
+	Name            string `json:"name" validate:"required"`
 	ConfirmPassword string `json:"confirm_password" validate:"required,min=8"`
+}
+
+type LoginResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	User         User   `json:"user"`
+}
+
+// RefreshTokenRequest represents the request body for token refresh
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" validate:"required"`
+}
+
+type UpdatePasswordRequest struct {
+	ID              string `json:"id"`
+	OldPassword     string `json:"old_password" validate:"required,min=8"`
+	NewPassword     string `json:"new_password" validate:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" validate:"required,min=8"`
+}
+
+type UpdateUserRequest struct {
+	ID    string `json:"id"`
+	Email string `json:"email" validate:"required,email"`
+	Name  string `json:"name" validate:"required"`
 }

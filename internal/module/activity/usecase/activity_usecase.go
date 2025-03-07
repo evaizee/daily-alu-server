@@ -96,6 +96,7 @@ func (uc *activityUseCase) Search(ctx context.Context, req *domain.SearchActivit
 	if req.Page < 1 {
 		req.Page = 1
 	}
+	
 	if req.PageSize < 1 || req.PageSize > 100 {
 		req.PageSize = 10
 	}

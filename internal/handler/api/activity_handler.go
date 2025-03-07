@@ -64,22 +64,25 @@ func (h *ActivityHandler) Get(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(activity)
+	return c.Status(fiber.StatusCreated).JSON(activity)
 }
 
 func (h *ActivityHandler) Update(c *fiber.Ctx) error {
+	fmt.Println("update activity")
 	claims := c.Locals("user").(*jwt.Claims)
 	userID := claims.UserID
 
 	req := &domain.UpdateActivityRequest{}
 	req.UserID = userID
-
+	
 	if err := c.BodyParser(req); err != nil {
+		fmt.Println(err.Error())
 		return c.SendStatus(500)
 	}
 
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
+		fmt.Println(err.Error())
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "Failed to parse activity ID",
 		})
@@ -88,17 +91,19 @@ func (h *ActivityHandler) Update(c *fiber.Ctx) error {
 	req.ID = id
 
 	if err := validator.ValidateRequest(c, req); err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 
 	activity, err := h.activityUseCase.Update(c.Context(), req)
 	if err != nil {
+		fmt.Println(err.Error())
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
-
-	return c.JSON(activity)
+  fmt.Println("activity = ", activity)
+	return c.Status(fiber.StatusCreated).JSON(activity)
 }
 
 func (h *ActivityHandler) Delete(c *fiber.Ctx) error {
@@ -120,10 +125,10 @@ func (h *ActivityHandler) Delete(c *fiber.Ctx) error {
 }
 
 func (h *ActivityHandler) Search(c *fiber.Ctx) error {
-	childID, _ := strconv.Atoi(c.Query("child_id"))
+
+	claims := c.Locals("user").(*jwt.Claims)
 	req := &domain.SearchActivityRequest{
-		UserID:   c.Query("user_id"),
-		ChildID:  childID,
+		UserID:   claims.UserID,
 		Type:     c.Query("type"),
 		Page:     c.QueryInt("page", 1),
 		PageSize: c.QueryInt("page_size", 10),

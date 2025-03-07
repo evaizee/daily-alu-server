@@ -104,28 +104,33 @@ func (uc *userUseCase) VerifyEmail(ctx context.Context, token string) error {
 	return nil
 }
 
-func (uc *userUseCase) Login(req *domain.LoginRequest) (string, string, error) {
+func (uc *userUseCase) Login(req *domain.LoginRequest) (*domain.LoginResponse, error) {
 	// Get user by email
 	user, err := uc.repo.GetByEmail(req.Email)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get user: %w", err)
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 	if user == nil {
-		return "", "", ErrInvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
 	// Verify password
 	if !password.Verify(req.Password, user.PasswordHash) {
-		return "", "", ErrInvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
 	// Generate token pair
 	accessToken, refreshToken, err := uc.jwtManager.GenerateTokenPair(user.ID, user.Email, user.Role)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to generate tokens: %w", err)
+		return nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
-	return accessToken, refreshToken, nil
+	// Return login response
+	return &domain.LoginResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         *user,
+	}, nil
 }
 
 func (uc *userUseCase) RefreshToken(refreshToken string) (string, string, error) {
@@ -142,8 +147,8 @@ func (uc *userUseCase) GetUser(id string) (*domain.User, error) {
 	return uc.repo.GetByID(id)
 }
 
-func (uc *userUseCase) UpdateUser(id, email, name string) (*domain.User, error) {
-	user, err := uc.repo.GetByID(id)
+func (uc *userUseCase) UpdateUser(request *domain.UpdateUserRequest) (*domain.User, error) {
+	user, err := uc.repo.GetByID(request.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,8 +156,8 @@ func (uc *userUseCase) UpdateUser(id, email, name string) (*domain.User, error) 
 		return nil, ErrUserNotFound
 	}
 
-	user.Email = email
-	user.Name = name
+	user.Email = request.Email
+	user.Name = request.Name
 	user.UpdatedAt = time.Now()
 
 	if err := uc.repo.Update(user); err != nil {
@@ -162,11 +167,39 @@ func (uc *userUseCase) UpdateUser(id, email, name string) (*domain.User, error) 
 	return user, nil
 }
 
-func (uc *userUseCase) DeleteUser(id string) error {
-	return uc.repo.Delete(id)
+func (uc *userUseCase) UpdatePassword(request *domain.UpdatePasswordRequest) error {
+  if request.NewPassword != request.ConfirmPassword {
+    return ErrDifferentConfirmationPassword
+  }
+  
+  user, err := uc.repo.GetByID(request.ID)
+  if err != nil {
+    return err
+  }
+
+  if user == nil {
+    return ErrUserNotFound
+  }
+
+  if !password.Verify(request.OldPassword, user.PasswordHash) {
+		return ErrInvalidOldPassword
+	}
+
+  hashedPassword, err := password.Hash(request.NewPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	fmt.Println("gams")
+
+  err = uc.repo.UpdatePassword(request.ID, hashedPassword)
+  if err != nil {
+    return err
+  }
+
+  return nil
 }
 
-// Helper function to generate unique ID
-func generateID() string {
-	return time.Now().Format("20060102150405") // Simple ID generation for demo
+func (uc *userUseCase) DeleteUser(id string) error {
+	return uc.repo.Delete(id)
 }

@@ -101,6 +101,16 @@ func (r *postgresUserRepository) UpdateLastLogin(id string, lastLogin time.Time)
 	return err
 }
 
+func (r *postgresUserRepository) UpdatePassword(id, password string) error {
+	query := `
+		UPDATE users
+		SET password_hash = $2, updated_at = $3
+		WHERE id = $1
+	`
+	_, err := r.db.Exec(query, id, password, time.Now())
+	return err
+}
+
 func (r *postgresUserRepository) Delete(id string) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := r.db.Exec(query, id)

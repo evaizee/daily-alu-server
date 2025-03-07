@@ -3,11 +3,12 @@ package usecase
 import "errors"
 
 var (
-	ErrUserNotFound                  = errors.New("user not found")
-	ErrUserAlreadyExists             = errors.New("user already exists")
-	ErrEmailAlreadyExists            = errors.New("email already exists")
-	ErrInvalidCredentials            = errors.New("invalid credentials")
-	ErrInvalidVerificationToken      = errors.New("invalid verification token")
-	ErrVerificationTokenExpired      = errors.New("token expired")
-	ErrDifferentConfirmationPassword = errors.New("confirmation password is not equal")
+	ErrUserNotFound                  = errors.New("User not found")
+	ErrUserAlreadyExists             = errors.New("User already exists")
+	ErrEmailAlreadyExists            = errors.New("Email already exists")
+	ErrInvalidCredentials            = errors.New("Invalid credentials")
+	ErrInvalidVerificationToken      = errors.New("Invalid verification token")
+	ErrVerificationTokenExpired      = errors.New("Token expired")
+	ErrDifferentConfirmationPassword = errors.New("Confirmation password is not equal")
+	ErrInvalidOldPassword            = errors.New("Old password is not valid")
 )

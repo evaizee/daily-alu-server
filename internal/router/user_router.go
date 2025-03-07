@@ -47,8 +47,10 @@ func SetupUserRoutes(app *fiber.App, userHandler *api.UserHandler, securityMiddl
 	users.Use(securityMiddleware.JWT())
 
 	// Routes accessible by all authenticated users
+	users.Patch("/:id/password", userHandler.UpdatePassword)
 	users.Get("/:id", userHandler.GetUser)
 	users.Put("/:id", userHandler.UpdateUser)
+	
 
 	// Routes accessible only by admins
 	admin := users.Group("/")

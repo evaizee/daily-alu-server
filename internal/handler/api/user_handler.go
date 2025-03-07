@@ -23,14 +23,13 @@ func NewUserHandler(userUseCase usecase.IUserUseCase) *UserHandler {
 func (h *UserHandler) Register(c *fiber.Ctx) error {
 	req := &domain.RegisterRequest{}
 	if err := c.BodyParser(req); err != nil {
-        fmt.Println("error = ",err)
-        return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+    fmt.Println("error = ",err)
+    return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err,
 		})
-    }
+  }
 
 	if err := validator.ValidateRequest(c, req); err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -58,40 +57,35 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	req := &domain.LoginRequest{}
 
 	if err := c.BodyParser(req); err != nil {
-        fmt.Println("error = ",err)
-        return c.SendStatus(500)
-    }
+		fmt.Println("error = ",err)
+		return app_errors.NewBadRequestError(err.Error())
+	}
 
 	if err := validator.ValidateRequest(c, req); err != nil {
 		return err
 	}
 
-	accessToken, refreshToken, err := h.userUseCase.Login(req)
+	loginResult, err := h.userUseCase.Login(req)
+
 	if err == usecase.ErrInvalidCredentials {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": "Invalid email or password adfasfsd",
-		})
-	}
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Internal server error",
-		})
+		return app_errors.NewValidationError(err.Error())
+	} else if err != nil {
+		return app_errors.NewInternalError(err)
 	}
 
-	return c.JSON(fiber.Map{
-		"access_token": accessToken,
-		"refresh_token": refreshToken,
-	})
+	return c.JSON(loginResult)
 }
 
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	id := c.Params("id")
 	user, err := h.userUseCase.GetUser(id)
+
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Internal server error",
 		})
 	}
+
 	if user == nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": "User not found",
@@ -102,26 +96,20 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
-	id := c.Params("id")
-	var input struct {
-		Email string `json:"email" validate:"required,email"`
-		Name  string `json:"name" validate:"required"`
-	}
-
-	if err := validator.ValidateRequest(c, &input); err != nil {
+	
+	request :=  &domain.UpdateUserRequest{}
+	if err := validator.ValidateRequest(c,request); err != nil {
 		return err
 	}
 
-	user, err := h.userUseCase.UpdateUser(id, input.Email, input.Name)
+	request.ID = c.Params("id")
+
+	user, err := h.userUseCase.UpdateUser(request)
+
 	if err == usecase.ErrUserNotFound {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Internal server error",
-		})
+		return app_errors.NewError(app_errors.ErrCodeNotFound, err.Error())
+	} else if err != nil {
+		return app_errors.NewInternalError(err)
 	}
 
 	return c.JSON(user)
@@ -141,40 +129,56 @@ func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
 // VerifyEmail handles email verification
 func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
     // Check query parameter first
-    token := c.Query("token")
-    
-    // If not in query, check path parameter
-    if token == "" {
-        token = c.Params("token")
-    }
+	token := c.Query("token")
+	
+	// If not in query, check path parameter
+	if token == "" {
+			token = c.Params("token")
+	}
 
-    if token == "" {
-			return app_errors.NewValidationError("Verification token is required").AddMetadata("token",token)
-        // return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-        //     "error": "Verification token is required",
-        // })
-    }
+	if token == "" {
+		return app_errors.NewValidationError("Verification token is required").AddMetadata("token",token)
+	}
 
-    if err := h.userUseCase.VerifyEmail(c.Context(), token); err != nil {
-        // return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-        //     "error": err.Error(),
-        // })
-			return app_errors.NewBadRequestError(err.Error()).WithInternal(err).AddMetadata("token",token)
-    }
+	if err := h.userUseCase.VerifyEmail(c.Context(), token); err != nil {
+		return app_errors.NewBadRequestError(err.Error()).WithInternal(err).AddMetadata("token",token)
+	}
 
-    return c.JSON(fiber.Map{
-        "message": "Email verified successfully",
-    })
+	return c.JSON(fiber.Map{
+			"message": "Email verified successfully",
+	})
 }
 
-// RefreshTokenRequest represents the request body for token refresh
-type RefreshTokenRequest struct {
-    RefreshToken string `json:"refresh_token" validate:"required"`
+func (h *UserHandler) UpdatePassword(c *fiber.Ctx) error {
+	request := &domain.UpdatePasswordRequest{}
+
+	if err := validator.ValidateRequest(c,request); err != nil {
+		return err
+	}
+
+	request.ID = c.Params("id")
+
+	fmt.Println(request)
+
+	err := h.userUseCase.UpdatePassword(request)
+
+	if err == usecase.ErrUserNotFound {
+		return app_errors.NewValidationError(err.Error())
+	} else if err != nil {
+		return app_errors.NewValidationError("Internal Server Error")
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Password Updated successfully",
+	})
 }
+
+
 
 // RefreshToken handles token refresh requests
 func (h *UserHandler) RefreshToken(c *fiber.Ctx) error {
-    req := &RefreshTokenRequest{}
+    req := &domain.RefreshTokenRequest{}
+		
     if err := c.BodyParser(req); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
             "error": "Invalid request body",

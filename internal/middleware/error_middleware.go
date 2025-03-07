@@ -32,7 +32,6 @@ func (m *ErrorMiddleware) Handle() fiber.Handler {
 		reqID := c.Get("X-Request-ID", "unknown")
 		method := c.Method()
 		path := c.Path()
-		fmt.Println("dari error middleware")
 		fmt.Println(err)
 		// Convert to our AppError type if it isn't already
 		var appErr *app_errors.AppError

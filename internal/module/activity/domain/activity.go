@@ -20,7 +20,7 @@ type Activity struct {
 // CreateActivityRequest represents the request to create a new activity
 type CreateActivityRequest struct {
 	UserID    string          `json:"user_id" validate:"required"`
-	ChildID   int             `json:"child_id"`
+	ChildID   int             `json:"child_id" validate:"required"`
 	Type      string          `json:"type" validate:"required"`
 	Details   json.RawMessage `json:"details" validate:"required"`
 	HappensAt string          `json:"happens_at" validate:"required"`
@@ -30,7 +30,7 @@ type CreateActivityRequest struct {
 type UpdateActivityRequest struct {
 	ID        int             `json:"id" validate:"required"`
 	UserID    string          `json:"user_id" validate:"required"`
-	ChildID   string          `json:"child_id" validate:"required"`
+	ChildID   int             `json:"child_id" validate:"required"`
 	Details   json.RawMessage `json:"details" validate:"required"`
 	HappensAt string          `json:"happens_at" validate:"required"`
 }
