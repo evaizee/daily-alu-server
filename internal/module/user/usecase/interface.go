@@ -15,5 +15,6 @@ type IUserUseCase interface {
 	VerifyEmail(ctx context.Context, token string) error
 	RefreshToken(refreshToken string) (string, string, error)
 	UpdatePassword(request *domain.UpdatePasswordRequest) error
-	//todo: add forgot password, reset password and change password
+	ForgotPassword(req *domain.ForgotPasswordRequest) error
+	ResetPassword(req *domain.ResetPasswordRequest) error
 }

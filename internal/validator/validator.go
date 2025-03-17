@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"dailyalu-server/pkg/response"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"strings"
@@ -35,16 +36,11 @@ func ValidateStruct(payload interface{}) []*ValidationError {
 
 func ValidateRequest(c *fiber.Ctx, payload interface{}) error {
 	if err := c.BodyParser(payload); err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
-		})
+		return response.NewBadRequestError("Invalid request body")
 	}
 
 	if errors := ValidateStruct(payload); len(errors) > 0 {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "Validation failed",
-			"details": errors,
-		})
+		return response.NewValidationErrorWithDetails("Validation failed", errors)
 	}
 
 	return nil

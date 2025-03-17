@@ -111,8 +111,36 @@ func (r *postgresUserRepository) UpdatePassword(id, password string) error {
 	return err
 }
 
+func (r *postgresUserRepository) UpdateForgotPasswordToken(id, token string) error {
+	query := `
+		UPDATE users
+		SET reset_password_token = $2, reset_password_requested_at = $3, updated_at = $3
+		WHERE id = $1
+	`
+	_, err := r.db.Exec(query, id, token, time.Now())
+	return err
+}
+
 func (r *postgresUserRepository) Delete(id string) error {
 	query := `DELETE FROM users WHERE id = $1`
 	_, err := r.db.Exec(query, id)
 	return err
+}
+
+func (r *postgresUserRepository) GetByResetPasswordToken(token string) (*domain.User, error) {
+	user := &domain.User{}
+	query := `
+		SELECT id, email, name, password_hash, status, reset_password_token, reset_password_token_requested_at, role, last_login, created_at, updated_at
+		FROM users
+		WHERE email_verification_token = $1
+	`
+	err := r.db.QueryRow(query, token).Scan(
+		&user.ID, &user.Email, &user.Name, &user.PasswordHash, 
+		&user.Status, &user.ResetPasswordToken, &user.ResetPasswordTokenRequestedAt, &user.Role,
+		&user.LastLogin, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	return user, err
 }

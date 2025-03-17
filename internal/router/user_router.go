@@ -37,6 +37,10 @@ func SetupUserRoutes(app *fiber.App, userHandler *api.UserHandler, securityMiddl
 	app.Use(apiKeyMiddleware.ValidateAPIKey())
 	auth.Post("/register", userHandler.Register)
 	auth.Post("/login", userHandler.Login)
+	
+	// Password recovery routes (don't require authentication)
+	auth.Post("/forgot-password", userHandler.ForgotPassword)
+	auth.Post("/reset-password", userHandler.ResetPassword)
 
 	auth.Use(securityMiddleware.JWT())
 	auth.Post("/refresh-token", userHandler.RefreshToken)  // Add refresh token endpoint before API key middleware

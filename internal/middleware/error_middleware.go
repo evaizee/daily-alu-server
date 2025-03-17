@@ -1,8 +1,8 @@
 package middleware
 
 import (
-	"dailyalu-server/pkg/app_errors"
 	"dailyalu-server/pkg/app_log"
+	"dailyalu-server/pkg/response"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
@@ -33,13 +33,14 @@ func (m *ErrorMiddleware) Handle() fiber.Handler {
 		method := c.Method()
 		path := c.Path()
 		fmt.Println(err)
+		
 		// Convert to our AppError type if it isn't already
-		var appErr *app_errors.AppError
-		if appError, ok := err.(*app_errors.AppError); ok {
+		var appErr *response.AppError
+		if appError, ok := err.(*response.AppError); ok {
 			appErr = appError
 		} else {
 			// Unknown error, convert to internal error
-			appErr = app_errors.NewInternalError(err)
+			appErr = response.NewInternalError(err)
 		}
 
 		// Prepare log fields
@@ -73,34 +74,7 @@ func (m *ErrorMiddleware) Handle() fiber.Handler {
 			)
 		}
 
-		// Get HTTP status based on error code
-		status := getHTTPStatus(appErr.Code)
-
 		// Return error response
-		return c.Status(status).JSON(appErr.Response())
-	}
-}
-
-// getHTTPStatus maps error codes to HTTP status codes
-func getHTTPStatus(code app_errors.ErrorCode) int {
-	switch {
-	case code >= 5000:
-		return fiber.StatusInternalServerError
-	case code >= 4100:
-		return fiber.StatusUnauthorized
-	case code >= 4050:
-		return fiber.StatusMethodNotAllowed
-	case code >= 4040:
-		return fiber.StatusNotFound
-	case code >= 4030:
-		return fiber.StatusForbidden
-	case code >= 4020:
-		return fiber.StatusUnprocessableEntity
-	case code >= 4010:
-		return fiber.StatusUnauthorized
-	case code >= 4000:
-		return fiber.StatusBadRequest
-	default:
-		return fiber.StatusInternalServerError
+		return response.Error(c, appErr)
 	}
 }

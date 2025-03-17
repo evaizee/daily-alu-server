@@ -5,6 +5,7 @@ import (
 	"dailyalu-server/internal/module/activity/usecase"
 	"dailyalu-server/internal/security/jwt"
 	"dailyalu-server/internal/validator"
+	"dailyalu-server/pkg/response"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -30,7 +31,7 @@ func (h *ActivityHandler) Create(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(req); err != nil {
 		fmt.Println("error = ", err)
-		return c.SendStatus(500)
+		return response.NewBadRequestError("Invalid request body")
 	}
 
 	req.UserID = userID
@@ -41,34 +42,27 @@ func (h *ActivityHandler) Create(c *fiber.Ctx) error {
 
 	activity, err := h.activityUseCase.Create(c.Context(), req)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return response.MapDomainError(err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(activity)
+	return response.Success(c, fiber.StatusCreated, "Activity created successfully", activity)
 }
 
 func (h *ActivityHandler) Get(c *fiber.Ctx) error {
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Failed to parse activity ID",
-		})
+		return response.NewBadRequestError("Invalid activity ID format")
 	}
 
 	activity, err := h.activityUseCase.GetByID(c.Context(), id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Activity not found",
-		})
+		return response.NewNotFoundError("Activity not found")
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(activity)
+	return response.Success(c, fiber.StatusOK, "Activity retrieved successfully", activity)
 }
 
 func (h *ActivityHandler) Update(c *fiber.Ctx) error {
-	fmt.Println("update activity")
 	claims := c.Locals("user").(*jwt.Claims)
 	userID := claims.UserID
 
@@ -77,15 +71,13 @@ func (h *ActivityHandler) Update(c *fiber.Ctx) error {
 	
 	if err := c.BodyParser(req); err != nil {
 		fmt.Println(err.Error())
-		return c.SendStatus(500)
+		return response.NewBadRequestError("Invalid request body")
 	}
 
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
 		fmt.Println(err.Error())
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Failed to parse activity ID",
-		})
+		return response.NewBadRequestError("Invalid activity ID format")
 	}
 
 	req.ID = id
@@ -98,34 +90,26 @@ func (h *ActivityHandler) Update(c *fiber.Ctx) error {
 	activity, err := h.activityUseCase.Update(c.Context(), req)
 	if err != nil {
 		fmt.Println(err.Error())
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return response.MapDomainError(err)
 	}
-  fmt.Println("activity = ", activity)
-	return c.Status(fiber.StatusCreated).JSON(activity)
+	
+	return response.Success(c, fiber.StatusOK, "Activity updated successfully", activity)
 }
 
 func (h *ActivityHandler) Delete(c *fiber.Ctx) error {
-
 	id, err := strconv.Atoi(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Failed to parse activity ID",
-		})
+		return response.NewBadRequestError("Invalid activity ID format")
 	}
 
 	if err := h.activityUseCase.Delete(c.Context(), id); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return response.MapDomainError(err)
 	}
 
-	return c.SendStatus(fiber.StatusNoContent)
+	return response.Success(c, fiber.StatusOK, "Activity deleted successfully", nil)
 }
 
 func (h *ActivityHandler) Search(c *fiber.Ctx) error {
-
 	claims := c.Locals("user").(*jwt.Claims)
 	req := &domain.SearchActivityRequest{
 		UserID:   claims.UserID,
@@ -138,9 +122,7 @@ func (h *ActivityHandler) Search(c *fiber.Ctx) error {
 	if startDate := c.Query("start_date"); startDate != "" {
 		date, err := time.Parse(time.RFC3339, startDate)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid start_date format",
-			})
+			return response.NewBadRequestError("Invalid start_date format")
 		}
 		req.StartDate = date
 	}
@@ -148,9 +130,7 @@ func (h *ActivityHandler) Search(c *fiber.Ctx) error {
 	if endDate := c.Query("end_date"); endDate != "" {
 		date, err := time.Parse(time.RFC3339, endDate)
 		if err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid end_date format",
-			})
+			return response.NewBadRequestError("Invalid end_date format")
 		}
 		req.EndDate = date
 	}
@@ -159,19 +139,30 @@ func (h *ActivityHandler) Search(c *fiber.Ctx) error {
 	if details := c.Query("details"); details != "" {
 		var detailsMap map[string]interface{}
 		if err := json.Unmarshal([]byte(details), &detailsMap); err != nil {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error": "Invalid details format",
-			})
+			return response.NewBadRequestError("Invalid details format")
 		}
 		req.Details = detailsMap
 	}
 
-	response, err := h.activityUseCase.Search(c.Context(), req)
+	// Get search results
+	activityResponse, err := h.activityUseCase.Search(c.Context(), req)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+		return response.MapDomainError(err)
 	}
 
-	return c.JSON(response)
+	// Create pagination from the response
+	pagination := response.NewPagination(
+		activityResponse.Pagination.Total, 
+		activityResponse.Pagination.PageSize, 
+		activityResponse.Pagination.CurrentPage,
+	)
+
+	// Return paginated response
+	return response.SuccessWithPagination(
+		c, 
+		fiber.StatusOK, 
+		"Activities retrieved successfully", 
+		activityResponse.Activities, 
+		pagination,
+	)
 }

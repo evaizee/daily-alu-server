@@ -12,16 +12,18 @@ const (
 )
 
 type User struct {
-	ID                     string     `json:"id"`
-	Email                  string     `json:"email"`
-	Name                   string     `json:"name"`
-	PasswordHash           string     `json:"-"`
-	Status                 int16      `json:"status"`
-	EmailVerificationToken string     `json:"-"`
-	Role                   string     `json:"role"`
-	LastLogin              *time.Time `json:"last_login,omitempty"`
-	CreatedAt              time.Time  `json:"created_at"`
-	UpdatedAt              time.Time  `json:"updated_at"`
+	ID                            string     `json:"id"`
+	Email                         string     `json:"email"`
+	Name                          string     `json:"name"`
+	PasswordHash                  string     `json:"-"`
+	Status                        int16      `json:"-"`
+	EmailVerificationToken        string     `json:"-"`
+	ResetPasswordToken            string     `json:"-"`
+	ResetPasswordTokenRequestedAt time.Time  `json:"-"`
+	Role                          string     `json:"-"`
+	LastLogin                     *time.Time `json:"last_login,omitempty"`
+	CreatedAt                     time.Time  `json:"created_at"`
+	UpdatedAt                     time.Time  `json:"updated_at"`
 }
 
 // IsActive checks if the user is active
@@ -68,4 +70,14 @@ type UpdateUserRequest struct {
 	ID    string `json:"id"`
 	Email string `json:"email" validate:"required,email"`
 	Name  string `json:"name" validate:"required"`
+}
+
+type ForgotPasswordRequest struct {
+	Email string `json:"email" validate:"required,email"`
+}
+
+type ResetPasswordRequest struct {
+	Token           string `json:"token" validate:"required"`
+	NewPassword     string `json:"new_password" validate:"required,min=8"`
+	ConfirmPassword string `json:"confirm_password" validate:"required"`
 }

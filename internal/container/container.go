@@ -8,7 +8,7 @@ import (
 	"dailyalu-server/internal/module/user/repository"
 	"dailyalu-server/internal/module/user/usecase"
 	"dailyalu-server/internal/security/jwt"
-	"dailyalu-server/internal/service/email"
+	"dailyalu-server/internal/security/token"
 	"database/sql"
 	"time"
 )
@@ -22,23 +22,23 @@ type Container struct {
 	jwtManager *jwt.JWTManager
 
 	// Repositories
-	userRepository repository.IUserRepository
+	userRepository     repository.IUserRepository
 	activityRepository activityRepo.IActivityRepository
 
 	// Use Cases
-	userUseCase usecase.IUserUseCase
+	userUseCase     usecase.IUserUseCase
 	activityUseCase activityUseCase.IActivityUseCase
 
 	// Handlers
-	userHandler *api.UserHandler
+	userHandler     *api.UserHandler
 	activityHandler *api.ActivityHandler
 
 	// Middleware
 	securityMiddleware *middleware.SecurityMiddleware
-	errorMiddleware   *middleware.ErrorMiddleware
+	errorMiddleware    *middleware.ErrorMiddleware
 
-	//Email Verification Service
-	emailVerificationService *email.VerificationService
+	//Token Verification Service
+	tokenService *token.TokenService
 }
 
 // NewContainer creates a new dependency injection container
@@ -54,10 +54,10 @@ func NewContainer(db *sql.DB, jwtSecret, jwtRefreshSecretKey string, jwtExpiry, 
 	c.userRepository = repository.NewPostgresUserRepository(db)
 	c.activityRepository = activityRepo.NewActivityRepository(db)
 
-	c.emailVerificationService = email.NewVerificationService()
+	c.tokenService = token.NewTokenService()
 
 	// Initialize use cases
-	c.userUseCase = usecase.NewUserUseCase(c.userRepository, c.jwtManager, c.emailVerificationService)
+	c.userUseCase = usecase.NewUserUseCase(c.userRepository, c.jwtManager, c.tokenService)
 	c.activityUseCase = activityUseCase.NewActivityUseCase(c.activityRepository)
 
 	// Initialize handlers
