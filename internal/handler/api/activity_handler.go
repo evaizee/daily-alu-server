@@ -3,7 +3,7 @@ package api
 import (
 	"dailyalu-server/internal/module/activity/domain"
 	"dailyalu-server/internal/module/activity/usecase"
-	"dailyalu-server/internal/security/jwt"
+	"dailyalu-server/internal/utils"
 	"dailyalu-server/internal/validator"
 	"dailyalu-server/pkg/response"
 	"encoding/json"
@@ -25,8 +25,7 @@ func NewActivityHandler(activityUseCase usecase.IActivityUseCase) *ActivityHandl
 }
 
 func (h *ActivityHandler) Create(c *fiber.Ctx) error {
-	claims := c.Locals("user").(*jwt.Claims)
-	userID := claims.UserID
+	userID := utils.GetUserIDFromContext(c)
 	req := &domain.CreateActivityRequest{}
 
 	if err := c.BodyParser(req); err != nil {
@@ -63,8 +62,7 @@ func (h *ActivityHandler) Get(c *fiber.Ctx) error {
 }
 
 func (h *ActivityHandler) Update(c *fiber.Ctx) error {
-	claims := c.Locals("user").(*jwt.Claims)
-	userID := claims.UserID
+	userID := utils.GetUserIDFromContext(c)
 
 	req := &domain.UpdateActivityRequest{}
 	req.UserID = userID
@@ -110,9 +108,9 @@ func (h *ActivityHandler) Delete(c *fiber.Ctx) error {
 }
 
 func (h *ActivityHandler) Search(c *fiber.Ctx) error {
-	claims := c.Locals("user").(*jwt.Claims)
+	userID := utils.GetUserIDFromContext(c)
 	req := &domain.SearchActivityRequest{
-		UserID:   claims.UserID,
+		UserID:   userID,
 		Type:     c.Query("type"),
 		Page:     c.QueryInt("page", 1),
 		PageSize: c.QueryInt("page_size", 10),

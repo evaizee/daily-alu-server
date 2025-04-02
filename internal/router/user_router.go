@@ -4,7 +4,7 @@ import (
 	"dailyalu-server/internal/handler/api"
 	"dailyalu-server/internal/middleware"
 	"dailyalu-server/internal/security/apikey"
-	"time"
+	//"time"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -14,29 +14,30 @@ func SetupUserRoutes(app *fiber.App, userHandler *api.UserHandler, securityMiddl
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyService)
 
 	// Add some test API keys (in production, these would come from a database)
-	testKey := &apikey.APIKey{
-		ID:     "1",
-		Name:   "Test App",
-		Key:    "dk_test_12345",
-		Status: apikey.KeyStatusActive,
-		ExpiresAt: time.Now().AddDate(1, 0, 0), // Expires in 1 year
-		RateLimit: 1000,
-	}
-	apiKeyService.AddKey(testKey)
+	// testKey := &apikey.APIKey{
+	// 	ID:     "1",
+	// 	Name:   "Test App",
+	// 	Key:    "dk_test_12345",
+	// 	Status: apikey.KeyStatusActive,
+	// 	ExpiresAt: time.Now().AddDate(1, 0, 0), // Expires in 1 year
+	// 	RateLimit: 1000,
+	// }
+	// apiKeyService.AddKey(testKey)
 
 	// Apply global middleware
 	app.Use(middleware.CORSConfig())
-	app.Use(middleware.RateLimiter())
-	 // Add API key validation
+	
+	// Add API key validation
+	app.Use(apiKeyMiddleware.ValidateAPIKey())
 
 	// Public routes
 	auth := app.Group("/api/v1/auth")
 
-	auth.Get("/verify-email/:token?", userHandler.VerifyEmail)
+	auth.Get("/verify-email/:token", userHandler.VerifyEmail)
 
-	app.Use(apiKeyMiddleware.ValidateAPIKey())
-	auth.Post("/register", userHandler.Register)
-	auth.Post("/login", userHandler.Login)
+	// Apply rate limiters to login and register endpoints
+	middleware.RateLimitedRoute(auth, "POST", "/register", userHandler.Register)
+	middleware.RateLimitedRoute(auth, "POST", "/login", userHandler.Login)
 	
 	// Password recovery routes (don't require authentication)
 	auth.Post("/forgot-password", userHandler.ForgotPassword)
@@ -44,20 +45,21 @@ func SetupUserRoutes(app *fiber.App, userHandler *api.UserHandler, securityMiddl
 
 	auth.Use(securityMiddleware.JWT())
 	auth.Post("/refresh-token", userHandler.RefreshToken)  // Add refresh token endpoint before API key middleware
-	
 
 	// Protected routes
 	users := app.Group("/api/v1/users")
 	users.Use(securityMiddleware.JWT())
 
 	// Routes accessible by all authenticated users
-	users.Patch("/:id/password", userHandler.UpdatePassword)
-	users.Get("/:id", userHandler.GetUser)
-	users.Put("/:id", userHandler.UpdateUser)
+	users.Patch("/password", userHandler.UpdatePassword)
+	users.Get("/profile", userHandler.GetUser)
+	users.Put("/profile", userHandler.UpdateUser)
 	
 
 	// Routes accessible only by admins
 	admin := users.Group("/")
 	admin.Use(securityMiddleware.RoleAuth("admin"))
 	admin.Delete("/:id", userHandler.DeleteUser)
+	admin.Get("/:id", userHandler.AdminGetUser)  // Admin-specific route to get any user
+	admin.Put("/:id", userHandler.AdminUpdateUser)  // Admin-specific route to update any user
 }

@@ -3,6 +3,7 @@ package api
 import (
 	"dailyalu-server/internal/module/user/domain"
 	"dailyalu-server/internal/module/user/usecase"
+	"dailyalu-server/internal/utils"
 	"dailyalu-server/internal/validator"
 	"dailyalu-server/pkg/response"
 	"fmt"
@@ -64,8 +65,10 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
-	id := c.Params("id")
-	user, err := h.userUseCase.GetUser(id)
+	// Get user ID from JWT token
+	userID := utils.GetUserIDFromContext(c)
+	
+	user, err := h.userUseCase.GetUser(userID)
 
 	if err != nil {
 		return response.MapDomainError(err)
@@ -79,13 +82,13 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
-	
-	request :=  &domain.UpdateUserRequest{}
-	if err := validator.ValidateRequest(c,request); err != nil {
+	request := &domain.UpdateUserRequest{}
+	if err := validator.ValidateRequest(c, request); err != nil {
 		return err
 	}
 
-	request.ID = c.Params("id")
+	// Get user ID from JWT token
+	request.ID = utils.GetUserIDFromContext(c)
 
 	user, err := h.userUseCase.UpdateUser(request)
 
@@ -129,11 +132,12 @@ func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
 func (h *UserHandler) UpdatePassword(c *fiber.Ctx) error {
 	request := &domain.UpdatePasswordRequest{}
 
-	if err := validator.ValidateRequest(c,request); err != nil {
+	if err := validator.ValidateRequest(c, request); err != nil {
 		return err
 	}
 
-	request.ID = c.Params("id")
+	// Get user ID from JWT token
+	request.ID = utils.GetUserIDFromContext(c)
 
 	err := h.userUseCase.UpdatePassword(request)
 
@@ -228,4 +232,38 @@ func (h *UserHandler) ResetPassword(c *fiber.Ctx) error {
 		"Your password has been reset successfully", 
 		nil,
 	)
+}
+
+// AdminGetUser allows admins to get any user by ID
+func (h *UserHandler) AdminGetUser(c *fiber.Ctx) error {
+	id := c.Params("id")
+	user, err := h.userUseCase.GetUser(id)
+
+	if err != nil {
+		return response.MapDomainError(err)
+	}
+
+	if user == nil {
+		return response.NewNotFoundError("User not found")
+	}
+
+	return response.Success(c, fiber.StatusOK, "User retrieved successfully", user)
+}
+
+// AdminUpdateUser allows admins to update any user by ID
+func (h *UserHandler) AdminUpdateUser(c *fiber.Ctx) error {
+	request := &domain.UpdateUserRequest{}
+	if err := validator.ValidateRequest(c, request); err != nil {
+		return err
+	}
+
+	request.ID = c.Params("id")
+
+	user, err := h.userUseCase.UpdateUser(request)
+
+	if err != nil {
+		return response.MapDomainError(err)
+	}
+
+	return response.Success(c, fiber.StatusOK, "User updated successfully", user)
 }

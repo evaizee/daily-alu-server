@@ -5,6 +5,8 @@ import (
 	"dailyalu-server/internal/middleware"
 	activityRepo "dailyalu-server/internal/module/activity/repository"
 	activityUseCase "dailyalu-server/internal/module/activity/usecase"
+	childrenRepo "dailyalu-server/internal/module/children/repository"
+	childrenUseCase "dailyalu-server/internal/module/children/usecase"
 	"dailyalu-server/internal/module/user/repository"
 	"dailyalu-server/internal/module/user/usecase"
 	"dailyalu-server/internal/security/jwt"
@@ -24,14 +26,17 @@ type Container struct {
 	// Repositories
 	userRepository     repository.IUserRepository
 	activityRepository activityRepo.IActivityRepository
+	childrenRepository childrenRepo.IChildrenRepository
 
 	// Use Cases
 	userUseCase     usecase.IUserUseCase
 	activityUseCase activityUseCase.IActivityUseCase
+	childrenUseCase childrenUseCase.IChildrenUseCase
 
 	// Handlers
 	userHandler     *api.UserHandler
 	activityHandler *api.ActivityHandler
+	childrenHandler *api.ChildrenHandler
 
 	// Middleware
 	securityMiddleware *middleware.SecurityMiddleware
@@ -53,16 +58,19 @@ func NewContainer(db *sql.DB, jwtSecret, jwtRefreshSecretKey string, jwtExpiry, 
 	// Initialize repositories
 	c.userRepository = repository.NewPostgresUserRepository(db)
 	c.activityRepository = activityRepo.NewActivityRepository(db)
+	c.childrenRepository = childrenRepo.NewPostgresChildrenRepository(db)
 
 	c.tokenService = token.NewTokenService()
 
 	// Initialize use cases
 	c.userUseCase = usecase.NewUserUseCase(c.userRepository, c.jwtManager, c.tokenService)
 	c.activityUseCase = activityUseCase.NewActivityUseCase(c.activityRepository)
+	c.childrenUseCase = childrenUseCase.NewChildrenUseCase(c.childrenRepository)
 
 	// Initialize handlers
 	c.userHandler = api.NewUserHandler(c.userUseCase)
 	c.activityHandler = api.NewActivityHandler(c.activityUseCase)
+	c.childrenHandler = api.NewChildrenHandler(c.childrenUseCase)
 
 	// Initialize middleware
 	c.securityMiddleware = middleware.NewSecurityMiddleware(middleware.SecurityConfig{
@@ -81,6 +89,11 @@ func (c *Container) GetUserHandler() *api.UserHandler {
 // GetActivityHandler returns the activity handler
 func (c *Container) GetActivityHandler() *api.ActivityHandler {
 	return c.activityHandler
+}
+
+// GetChildrenHandler returns the children handler
+func (c *Container) GetChildrenHandler() *api.ChildrenHandler {
+	return c.childrenHandler
 }
 
 // GetSecurityMiddleware returns the security middleware

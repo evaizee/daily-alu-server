@@ -34,12 +34,24 @@ func init() {
 	// Add default configuration values
 	viper.SetDefault("server.port", 3000)
 	viper.SetDefault("server.env", "development")
+	viper.SetDefault("server.apikey", "") // Empty string means no master key
 	viper.SetDefault("database.host", "localhost")
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.sslmode", "disable")
 	viper.SetDefault("jwt.expiry", 24)
 	viper.SetDefault("logging.level", "debug")
 	viper.SetDefault("logging.format", "json")
+
+	// Rate limiter configuration
+	viper.SetDefault("ratelimit.enabled", true)
+	viper.SetDefault("ratelimit.default.max", 60)         // 60 requests
+	viper.SetDefault("ratelimit.default.expiration", 60)  // 60 seconds (1 minute)
+
+	// Endpoint-specific rate limits
+	viper.SetDefault("ratelimit.endpoints.post.api_v1_auth_login.max", 100)
+	viper.SetDefault("ratelimit.endpoints.post.api_v1_auth_login.expiration", 60)
+	viper.SetDefault("ratelimit.endpoints.post.api_v1_auth_register.max", 20)
+	viper.SetDefault("ratelimit.endpoints.post.api_v1_auth_register.expiration", 60)
 
 	// Enable environment variable overrides
 	viper.SetEnvPrefix("DAILYALU")

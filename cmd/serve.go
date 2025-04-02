@@ -68,6 +68,12 @@ var serveCmd = &cobra.Command{
 			cont.GetSecurityMiddleware(),
 		)
 
+		router.SetupChildrenRoutes(
+			app,
+			cont.GetChildrenHandler(),
+			cont.GetSecurityMiddleware(),
+		)
+
 		// Start server
 		port := viper.GetInt("server.port")
 		return app.Listen(fmt.Sprintf(":%d", port))

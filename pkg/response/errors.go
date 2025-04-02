@@ -38,6 +38,11 @@ func NewValidationError(message string) *AppError {
 	return NewAppError(ErrorTypeClient, ErrCodeValidation, message)
 }
 
+// NewTooManyRequestsError creates a rate limit exceeded error
+func NewTooManyRequestsError(message string) *AppError {
+	return NewAppError(ErrorTypeClient, ErrCodeRateLimit, message)
+}
+
 // NewValidationErrorWithDetails creates a validation error with details
 func NewValidationErrorWithDetails(message string, details interface{}) *AppError {
 	err := NewValidationError(message)

@@ -6,6 +6,8 @@ import (
 	"net"
 	"sync"
 	"time"
+	
+	"github.com/spf13/viper"
 )
 
 var (
@@ -20,16 +22,33 @@ type APIKeyService struct {
 	// In-memory cache for faster lookups
 	cache     map[string]*APIKey
 	cacheLock sync.RWMutex
+	// Static master API key from config
+	masterKey string
 }
 
 func NewAPIKeyService() *APIKeyService {
 	return &APIKeyService{
-		cache: make(map[string]*APIKey),
+		cache:     make(map[string]*APIKey),
+		masterKey: viper.GetString("server.apikey"),
 	}
 }
 
 // ValidateKey validates an API key and updates usage statistics
 func (s *APIKeyService) ValidateKey(ctx context.Context, keyString string, clientIP string) (*APIKey, error) {
+	// First check if it matches the master key from config
+	if s.masterKey != "" && keyString == s.masterKey {
+		// Create a temporary API key object for the master key
+		return &APIKey{
+			Key:        keyString,
+			Name:       "Master API Key",
+			Status:     KeyStatusActive,
+			CreatedAt:  time.Now(),
+			LastUsedAt: time.Now(),
+			ExpiresAt:  time.Now().AddDate(10, 0, 0), // Far in the future
+		}, nil
+	}
+
+	// If not the master key, proceed with the existing validation logic
 	s.cacheLock.RLock()
 	apiKey, exists := s.cache[keyString]
 	s.cacheLock.RUnlock()

@@ -1,6 +1,7 @@
 server:
   port: 3000
   env: development
+  apikey: "7mhmLJzo3vaYOHqiRLGzhizuH9gSDk-y3MzwzLnSA8uNuUkf8dw6zNwH1i8Qp"
 
 database:
   host: localhost
@@ -12,8 +13,8 @@ database:
   sslmode: disable
 
 jwt:
-  secret: "your-super-secret-key-change-this-in-production"
-  refresh-secret-key: "your-super-secret-refresh-key-change-this-in-production"
+  secret: "nfN1BQSSRGkzZmX7KnjGHrwmGqrm8w-jaVHGIqBIv3nN3TTFOQdG3CUur4cYd"
+  refresh-secret-key: "NmlA5LxMoEaPpCewzJhDLBGMvwCEaD"
   expiry: 24 # hours
   refresh-expiry: 120 # hours
 
@@ -34,3 +35,26 @@ aws:
 logging:
   level: debug
   format: json
+
+ratelimit:
+  enabled: true
+  default:
+    max: 60         # Default: 60 requests
+    expiration: 60  # Default: 60 seconds window
+  
+  # Endpoint-specific rate limits
+  endpoints:
+    # User endpoints
+    post.api_v1_auth_login:
+      max: 4
+      expiration: 60
+    post.api_v1_auth_register:
+      max: 5
+      expiration: 60
+    get.api_v1_users:
+      max: 5
+      expiration: 60
+    post.api_v1_users:
+      max: 5
+      expiration: 60
+      
