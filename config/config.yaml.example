@@ -18,7 +18,6 @@ jwt:
   expiry: 24 # hours
   refresh-expiry: 120 # hours
 
-
 redis:
   host: localhost
   port: 6379
