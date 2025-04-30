@@ -68,6 +68,11 @@ var serveCmd = &cobra.Command{
 			cont.GetSecurityMiddleware(),
 		)
 
+		router.SetupToolsRoutes(
+			app,
+			cont.GetSecurityMiddleware(),
+		)
+
 		// router.SetupChildrenRoutes(
 		// 	app,
 		// 	cont.GetChildrenHandler(),
@@ -76,6 +81,9 @@ var serveCmd = &cobra.Command{
 
 		// Start server
 		port := viper.GetInt("server.port")
+		// Bind to all network interfaces (0.0.0.0) instead of just localhost
+		//return app.Listen(fmt.Sprintf("0.0.0.0:%d", port))
+
 		return app.Listen(fmt.Sprintf(":%d", port))
 	},
 }
