@@ -3,6 +3,7 @@ package router
 import (
 	"dailyalu-server/internal/middleware"
 	"dailyalu-server/internal/security/apikey"
+
 	//"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,11 +19,10 @@ func SetupToolsRoutes(
 	apiKeyService := apikey.NewAPIKeyService()
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyService)
 
-
-	toolsGroup := app.Group("/api/tools", apiKeyMiddleware.ValidateAPIKey())
+	toolsGroup := app.Group("/tools", apiKeyMiddleware.ValidateAPIKey())
 
 	// Routes
-	toolsGroup.Get("/health-check", func (c *fiber.Ctx) error {
+	toolsGroup.Get("/health-check", func(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusOK).SendString("success")
 	})
 }

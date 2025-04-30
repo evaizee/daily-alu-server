@@ -31,7 +31,7 @@ func SetupUserRoutes(app *fiber.App, userHandler *api.UserHandler, securityMiddl
 	app.Use(apiKeyMiddleware.ValidateAPIKey())
 
 	// Public routes
-	auth := app.Group("/api/v1/auth")
+	auth := app.Group("/v1/auth")
 
 	auth.Get("/verify-email/:token", userHandler.VerifyEmail)
 

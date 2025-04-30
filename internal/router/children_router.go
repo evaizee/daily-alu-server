@@ -31,7 +31,7 @@ func SetupChildrenRoutes(
 	// }
 	// apiKeyService.AddKey(testKey)
 	// Create a group for children routes with auth middleware
-	childrenGroup := app.Group("/api/children", apiKeyMiddleware.ValidateAPIKey())
+	childrenGroup := app.Group("/children", apiKeyMiddleware.ValidateAPIKey())
 
 	// Routes
 	childrenGroup.Post("/", handler.CreateChild)

@@ -27,7 +27,7 @@ func SetupActivityRoutes(app *fiber.App, activityHandler *api.ActivityHandler, s
 
 	// Group activity routes
 	app.Use(apiKeyMiddleware.ValidateAPIKey())
-	activities := app.Group("/api/v1/activities")
+	activities := app.Group("/v1/activities")
 
 	// Apply middleware
 	activities.Use(securityMiddleware.JWT())
