@@ -42,6 +42,12 @@ func init() {
 	viper.SetDefault("logging.level", "debug")
 	viper.SetDefault("logging.format", "json")
 
+	//add ses values
+	viper.SetDefault("aws.ses.sender", "no-reply@dailyalu.com")
+	viper.SetDefault("aws.ses.access_key", "")
+	viper.SetDefault("aws.ses.access_secret_key", "")
+	viper.SetDefault("aws.region", "ap-southeast-1")
+
 	// Rate limiter configuration
 	viper.SetDefault("ratelimit.enabled", true)
 	viper.SetDefault("ratelimit.default.max", 60)         // 60 requests

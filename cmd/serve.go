@@ -1,15 +1,18 @@
 package cmd
 
 import (
+	"context"
 	"dailyalu-server/internal/container"
 	"dailyalu-server/internal/router"
 	"dailyalu-server/pkg/app_log"
 	"dailyalu-server/pkg/db/postgres"
+	"dailyalu-server/pkg/mailer/ses"
 	"fmt"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"time"
 )
 
 var serveCmd = &cobra.Command{
@@ -37,9 +40,15 @@ var serveCmd = &cobra.Command{
 			return fmt.Errorf("failed to connect to database: %w", err)
 		}
 
+		newSes, err := ses.InitSes(context.TODO())
+		if err != nil {
+			return fmt.Errorf("failed to get mailer service: %w", err)
+		}
+
 		// Initialize dependency container
 		cont := container.NewContainer(
 			db,
+			newSes,
 			viper.GetString("jwt.secret"),
 			viper.GetString("jwt.refresh-secret-key"),
 			viper.GetDuration("jwt.expiry")*time.Hour,

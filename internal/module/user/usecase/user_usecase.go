@@ -7,6 +7,7 @@ import (
 	"dailyalu-server/internal/security/jwt"
 	"dailyalu-server/internal/security/password"
 	"dailyalu-server/internal/security/token"
+	"dailyalu-server/internal/service/mailer"
 	"fmt"
 	"time"
 
@@ -17,14 +18,16 @@ type userUseCase struct {
 	repo         repository.IUserRepository
 	jwtManager   *jwt.JWTManager
 	tokenService *token.TokenService
+	mailerService *mailer.MailerService
 }
 
 // NewUserUseCase creates a new user use case
-func NewUserUseCase(repo repository.IUserRepository, jwtManager *jwt.JWTManager, tokenService *token.TokenService) IUserUseCase {
+func NewUserUseCase(repo repository.IUserRepository, jwtManager *jwt.JWTManager, tokenService *token.TokenService, mailerService *mailer.MailerService) IUserUseCase {
 	return &userUseCase{
 		repo:         repo,
 		jwtManager:   jwtManager,
 		tokenService: tokenService,
+		mailerService: mailerService,
 	}
 }
 
@@ -72,9 +75,14 @@ func (uc *userUseCase) Register(ctx context.Context, req *domain.RegisterRequest
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	// TODO: Send verification email
-	//verificationLink := uc.tokenService.GenerateVerificationLink("http://your-api-domain", verificationToken)
+	verificationLink := uc.tokenService.GenerateVerificationLink("https://dailyalu.mom/verify-email", verificationToken)
+	
 	// Implement email sending logic here
+	_, err = uc.mailerService.Send(ctx, "noreply@dailyalu.mom", req.Email, "Email Verification Link", "Hello, thank you for registering to Daily Alu. Verify your account in Daily Alu by clicking the following url "+verificationLink, "")
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to send email")
+	}
 
 	return user, nil
 }

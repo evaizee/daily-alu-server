@@ -11,8 +11,11 @@ import (
 	"dailyalu-server/internal/module/user/usecase"
 	"dailyalu-server/internal/security/jwt"
 	"dailyalu-server/internal/security/token"
+	"dailyalu-server/internal/service/mailer"
 	"database/sql"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 )
 
 // Container holds all the dependencies for the application
@@ -44,16 +47,22 @@ type Container struct {
 
 	//Token Verification Service
 	tokenService *token.TokenService
+
+	//Mailer Service
+	mailerService *mailer.MailerService
 }
 
 // NewContainer creates a new dependency injection container
-func NewContainer(db *sql.DB, jwtSecret, jwtRefreshSecretKey string, jwtExpiry, jwtRefreshExpiry time.Duration) *Container {
+func NewContainer(db *sql.DB, newSes *sesv2.Client, jwtSecret, jwtRefreshSecretKey string, jwtExpiry, jwtRefreshExpiry time.Duration) *Container {
 	c := &Container{
 		db: db,
 	}
 
 	// Initialize JWT manager
 	c.jwtManager = jwt.NewJWTManager(jwtSecret, jwtRefreshSecretKey, jwtExpiry, jwtRefreshExpiry)
+
+	// Initialize mailer
+	c.mailerService = mailer.NewMailerService(newSes)
 
 	// Initialize repositories
 	c.userRepository = repository.NewPostgresUserRepository(db)
@@ -63,7 +72,7 @@ func NewContainer(db *sql.DB, jwtSecret, jwtRefreshSecretKey string, jwtExpiry, 
 	c.tokenService = token.NewTokenService()
 
 	// Initialize use cases
-	c.userUseCase = usecase.NewUserUseCase(c.userRepository, c.jwtManager, c.tokenService)
+	c.userUseCase = usecase.NewUserUseCase(c.userRepository, c.jwtManager, c.tokenService, c.mailerService)
 	c.activityUseCase = activityUseCase.NewActivityUseCase(c.activityRepository)
 	c.childrenUseCase = childrenUseCase.NewChildrenUseCase(c.childrenRepository)
 

@@ -30,6 +30,8 @@ aws:
     bucket: dailyalu-storage
   ses:
     sender: no-reply@dailyalu.com
+    access_key: hehehe
+    access_secret_key: secret_hehe
 
 logging:
   level: debug
