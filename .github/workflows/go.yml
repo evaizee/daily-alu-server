@@ -1,7 +1,7 @@
-# This workflow will build a golang project
+# This workflow will build and test a golang project
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
 
-name: Daily Alu Server Test - Go
+name: Daily Alu Server CI/CD
 
 on:
   push:
@@ -10,7 +10,6 @@ on:
     branches: [ "main" ]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -21,17 +20,37 @@ jobs:
       with:
         go-version: '1.22.2'
 
+    - name: Install Dependencies
+      run: go get .
+
     - name: Build
       run: go build -v ./...
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dailyalu-server
+        path: dailyalu-server
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.22.2'
 
     - name: Install Dependencies
       run: go get .
 
-    - name: Test
+    - name: Run Tests
       run: go test -v dailyalu-server/internal/utils
 
-    - name: Upload Go test results
+    - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
-        name: Go-results-${{ matrix.go-version }}
-        path: TestResults-${{ matrix.go-version }}.json
+        name: test-results
+        path: TestResults-*.json
