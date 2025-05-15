@@ -81,3 +81,5 @@ Thumbs.db
 
 # Project specific
 # Add any additional project-specific files or directories that should be ignored
+
+test-results.json

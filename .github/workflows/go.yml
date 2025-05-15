@@ -47,10 +47,11 @@ jobs:
       run: go get .
 
     - name: Run Tests
-      run: go test -v dailyalu-server/internal/utils
+      run: |
+        go test -v -json dailyalu-server/internal/utils > test-results.json
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
       with:
         name: test-results
-        path: TestResults-*.json
+        path: test-results.json
