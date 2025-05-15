@@ -75,14 +75,17 @@ func (uc *userUseCase) Register(ctx context.Context, req *domain.RegisterRequest
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	verificationLink := uc.tokenService.GenerateVerificationLink("https://dailyalu.mom/verify-email", verificationToken)
+	uc.tokenService.GenerateVerificationLink("https://dailyalu.mom/verify-email", verificationToken)
+	//verificationLink := uc.tokenService.GenerateVerificationLink("https://dailyalu.mom/verify-email", verificationToken)
 	
 	// Implement email sending logic here
-	_, err = uc.mailerService.Send(ctx, "noreply@dailyalu.mom", req.Email, "Email Verification Link", "Hello, thank you for registering to Daily Alu. Verify your account in Daily Alu by clicking the following url "+verificationLink, "")
+	// go func() {
+	// 	_, err = uc.mailerService.Send(ctx, "noreply@dailyalu.mom", req.Email, "Email Verification Link", "Hello, thank you for registering to Daily Alu. Verify your account in Daily Alu by clicking the following url "+verificationLink, "")
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to send email")
-	}
+	// 	if err != nil {
+	// 		fmt.Errorf("failed to send email")
+	// 	}
+	// }()
 
 	return user, nil
 }
