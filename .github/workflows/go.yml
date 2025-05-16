@@ -92,10 +92,10 @@ jobs:
         # ssh ec2 "sudo systemctl stop dailyalu-server.service || true"
         
         # Copy the binary
-        scp dailyalu-server ec2:/opt/dailyalu-server/dailyalu-server
+        scp dailyalu-server ec2:/opt/dailyalu-server
         
         # Set permissions
-        ssh ec2 "chmod +x /opt/dailyalu-server/dailyalu-server"
+        ssh ec2 "chmod +x /opt/dailyalu-server"
         
         # Create systemd service file
         ssh ec2 "echo '[Unit]
@@ -106,7 +106,7 @@ jobs:
         # User=github-deploy
         # Group=github-deploy
         # WorkingDirectory=/opt/dailyalu-server
-        # ExecStart=/opt/dailyalu-server/dailyalu-server
+        # ExecStart=/opt/dailyalu-server
         # Restart=always
         # RestartSec=5
         
