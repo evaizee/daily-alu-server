@@ -46,7 +46,7 @@ jobs:
     - name: Install Dependencies
       run: go get .
 
-    - name: Run Tests
+    - name: Run Utils Tests
       run: |
         go test -v -json dailyalu-server/internal/utils > test-results.json
 
@@ -55,3 +55,68 @@ jobs:
       with:
         name: test-results
         path: test-results.json
+
+  deploy:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+    
+    steps:
+    - name: Download build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: dailyalu-server
+    
+    - name: Setup SSH
+      env:
+        SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        SSH_HOST: ${{ secrets.EC2_HOST }}
+        SSH_USER: ${{ secrets.EC2_USER }}
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        cat >> ~/.ssh/config <<EOF
+        Host ec2
+          HostName $SSH_HOST
+          User $SSH_USER
+          IdentityFile ~/.ssh/id_rsa
+          StrictHostKeyChecking no
+        EOF
+    
+    - name: Deploy to EC2
+      run: |
+        # Stop existing service if running
+        # ssh ec2 "sudo systemctl stop dailyalu-server.service || true"
+        
+        # Copy the binary
+        scp dailyalu-server ec2:/opt/dailyalu-server/dailyalu-server
+        
+        # Set permissions
+        ssh ec2 "chmod +x /opt/dailyalu-server/dailyalu-server"
+        
+        # Create systemd service file
+        ssh ec2 "echo '[Unit]
+        Description=Daily Alu Server
+        After=network.target
+        
+        # [Service]
+        # User=github-deploy
+        # Group=github-deploy
+        # WorkingDirectory=/opt/dailyalu-server
+        # ExecStart=/opt/dailyalu-server/dailyalu-server
+        # Restart=always
+        # RestartSec=5
+        
+        # [Install]
+        # WantedBy=multi-user.target' | sudo tee /etc/systemd/system/dailyalu-server.service"
+        
+        # Reload and start service
+        # ssh ec2 "sudo systemctl daemon-reload"
+        # ssh ec2 "sudo systemctl enable dailyalu-server.service"
+        # ssh ec2 "sudo systemctl start dailyalu-server.service"
+        
+        # Verify service status
+        # ssh ec2 "sudo systemctl status dailyalu-server.service"
