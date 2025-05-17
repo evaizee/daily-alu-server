@@ -103,15 +103,15 @@ jobs:
         After=network.target
         
         # [Service]
-        # User=github-deploy
-        # Group=github-deploy
-        # WorkingDirectory=/opt/dailyalu-server
-        # ExecStart=/opt/dailyalu-server
-        # Restart=always
-        # RestartSec=5
+        User=github-deploy
+        Group=github-deploy
+        WorkingDirectory=/opt/dailyalu-server
+        ExecStart=/opt/dailyalu-server
+        Restart=always
+        RestartSec=5
         
         # [Install]
-        # WantedBy=multi-user.target' | sudo tee /etc/systemd/system/dailyalu-server.service"
+        WantedBy=multi-user.target' | sudo tee /etc/systemd/system/dailyalu-server.service"
         
         # Reload and start service
         # ssh ec2 "sudo systemctl daemon-reload"
@@ -119,4 +119,4 @@ jobs:
         # ssh ec2 "sudo systemctl start dailyalu-server.service"
         
         # Verify service status
-        # ssh ec2 "sudo systemctl status dailyalu-server.service"
+        ssh ec2 "sudo systemctl status dailyalu-server.service"
