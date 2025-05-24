@@ -89,8 +89,7 @@ jobs:
     - name: Deploy to EC2
       run: |
         # Stop existing service if running
-        # ssh ec2 "sudo systemctl stop dailyalu-server.service || true"
-        
+         ssh ec2 "sudo mkdir -p /opt/dailyalu-server && sudo chown github-deploy:github-deploy /opt/dailyalu-server"
         # Copy the binary
         scp dailyalu-server ec2:/opt/dailyalu-server
         
@@ -98,7 +97,9 @@ jobs:
         ssh ec2 "chmod +x /opt/dailyalu-server"
         
         # Create systemd service file
-        ssh ec2 "echo '[Unit]
+        ssh ec2 << 'EOF'
+        sudo tee /etc/systemd/system/dailyalu-server.service > /dev/null <<EOL
+        [Unit]
         Description=Daily Alu Server
         After=network.target
         
