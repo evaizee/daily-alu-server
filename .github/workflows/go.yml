@@ -103,16 +103,19 @@ jobs:
         Description=Daily Alu Server
         After=network.target
         
-        # [Service]
+        [Service]
         User=github-deploy
         Group=github-deploy
         WorkingDirectory=/opt/dailyalu-server
-        ExecStart=/opt/dailyalu-server
+        ExecStart=/opt/dailyalu-server/dailyalu-server
         Restart=always
         RestartSec=5
+
         
         # [Install]
-        WantedBy=multi-user.target' | sudo tee /etc/systemd/system/dailyalu-server.service"
+        WantedBy=multi-user.target
+        EOL
+        EOF
         
         # Reload and start service
         # ssh ec2 "sudo systemctl daemon-reload"
