@@ -68,7 +68,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: dailyalu-server
-    
+
     - name: Setup SSH
       env:
         SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
@@ -85,42 +85,39 @@ jobs:
           IdentityFile ~/.ssh/id_rsa
           StrictHostKeyChecking no
         EOF
-    
-    - name: Deploy to EC2
+
+    - name: Prepare systemd service file
       run: |
-        # Stop existing service if running
-         ssh ec2 "sudo mkdir -p /opt/dailyalu-server && sudo chown github-deploy:github-deploy /opt/dailyalu-server"
-        # Copy the binary
-        scp dailyalu-server ec2:/opt/dailyalu-server
-        
-        # Set permissions
-        ssh ec2 "chmod +x /opt/dailyalu-server"
-        
-        # Create systemd service file
-        ssh ec2 << 'EOF'
-        sudo tee /etc/systemd/system/dailyalu-server.service > /dev/null <<EOL
+        cat > dailyalu-server.service <<EOF
         [Unit]
         Description=Daily Alu Server
         After=network.target
-        
+
         [Service]
         User=github-deploy
         Group=github-deploy
         WorkingDirectory=/opt/dailyalu-server
-        ExecStart=/opt/dailyalu-server/dailyalu-server
+        ExecStart=/opt/dailyalu-server
         Restart=always
         RestartSec=5
 
-        
-        # [Install]
+        [Install]
         WantedBy=multi-user.target
-        EOL
         EOF
-        
-        # Reload and start service
-        # ssh ec2 "sudo systemctl daemon-reload"
-        # ssh ec2 "sudo systemctl enable dailyalu-server.service"
-        # ssh ec2 "sudo systemctl start dailyalu-server.service"
-        
-        # Verify service status
-        ssh ec2 "sudo systemctl status dailyalu-server.service"
+
+    - name: Upload binary and service file
+      run: |
+        ssh ec2 "sudo mkdir -p /opt/dailyalu-server && sudo chown github-deploy:github-deploy /opt/dailyalu-server"
+        scp dailyalu-server ec2:/opt/dailyalu-server/dailyalu-server
+        scp dailyalu-server.service ec2:/tmp/dailyalu-server.service
+        # ssh ec2 "sudo mv /tmp/dailyalu-server.service /etc/systemd/system/dailyalu-server.service"
+
+    - name: Reload and restart service
+      run: |
+        ssh ec2 <<'EOF'
+        sudo chmod +x /opt/dailyalu-server/dailyalu-server
+        # sudo systemctl daemon-reload
+        # sudo systemctl enable dailyalu-server.service
+        # sudo systemctl restart dailyalu-server.service
+        # sudo systemctl status dailyalu-server.service --no-pager
+        EOF
