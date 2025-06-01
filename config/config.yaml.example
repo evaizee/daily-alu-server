@@ -58,4 +58,12 @@ ratelimit:
     post.api_v1_users:
       max: 5
       expiration: 60
+
+# Add this to your existing config
+smtp:
+  host: "smtp-relay.brevo.com"
+  port: 587
+  username: "your-brevo-username"
+  password: "your-brevo-password"
+  from: "noreply@dailyalu.mom"
       

@@ -13,17 +13,6 @@ func SetupUserRoutes(app *fiber.App, userHandler *api.UserHandler, securityMiddl
 	apiKeyService := apikey.NewAPIKeyService()
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyService)
 
-	// Add some test API keys (in production, these would come from a database)
-	// testKey := &apikey.APIKey{
-	// 	ID:     "1",
-	// 	Name:   "Test App",
-	// 	Key:    "dk_test_12345",
-	// 	Status: apikey.KeyStatusActive,
-	// 	ExpiresAt: time.Now().AddDate(1, 0, 0), // Expires in 1 year
-	// 	RateLimit: 1000,
-	// }
-	// apiKeyService.AddKey(testKey)
-
 	// Apply global middleware
 	app.Use(middleware.CORSConfig())
 	

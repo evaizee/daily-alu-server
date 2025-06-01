@@ -14,17 +14,6 @@ func SetupActivityRoutes(app *fiber.App, activityHandler *api.ActivityHandler, s
 	apiKeyService := apikey.NewAPIKeyService()
 	apiKeyMiddleware := middleware.NewAPIKeyMiddleware(apiKeyService)
 
-	// Add some test API keys (in production, these would come from a database)
-	// testKey := &apikey.APIKey{
-	// 	ID:        "1",
-	// 	Name:      "Test App",
-	// 	Key:       "dk_test_12345",
-	// 	Status:    apikey.KeyStatusActive,
-	// 	ExpiresAt: time.Now().AddDate(1, 0, 0), // Expires in 1 year
-	// 	RateLimit: 1000,
-	// }
-	// apiKeyService.AddKey(testKey)
-
 	// Group activity routes
 	app.Use(apiKeyMiddleware.ValidateAPIKey())
 	activities := app.Group("/v1/activities")

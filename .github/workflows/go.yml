@@ -110,7 +110,7 @@ jobs:
         ssh ec2 "sudo mkdir -p /opt/dailyalu-server && sudo chown github-deploy:github-deploy /opt/dailyalu-server"
         scp dailyalu-server ec2:/opt/dailyalu-server/dailyalu-server
         scp dailyalu-server.service ec2:/tmp/dailyalu-server.service
-        # ssh ec2 "sudo mv /tmp/dailyalu-server.service /etc/systemd/system/dailyalu-server.service"
+        ssh ec2 "sudo mv /tmp/dailyalu-server.service /etc/systemd/system/dailyalu-server.service"
 
     - name: Reload and restart service
       run: |

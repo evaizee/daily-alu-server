@@ -2,9 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"strings"
 )
 
 var configCmd = &cobra.Command{
@@ -50,8 +51,8 @@ func init() {
 
 	// Rate limiter configuration
 	viper.SetDefault("ratelimit.enabled", true)
-	viper.SetDefault("ratelimit.default.max", 60)         // 60 requests
-	viper.SetDefault("ratelimit.default.expiration", 60)  // 60 seconds (1 minute)
+	viper.SetDefault("ratelimit.default.max", 60)        // 60 requests
+	viper.SetDefault("ratelimit.default.expiration", 60) // 60 seconds (1 minute)
 
 	// Endpoint-specific rate limits
 	viper.SetDefault("ratelimit.endpoints.post.api_v1_auth_login.max", 100)

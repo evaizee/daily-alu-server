@@ -12,10 +12,10 @@ import (
 	"dailyalu-server/internal/security/jwt"
 	"dailyalu-server/internal/security/token"
 	"dailyalu-server/internal/service/mailer"
+	mailerDomain "dailyalu-server/internal/service/mailer/domain"
+	"dailyalu-server/pkg/mailer/smtp"
 	"database/sql"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/service/sesv2"
 )
 
 // Container holds all the dependencies for the application
@@ -49,11 +49,11 @@ type Container struct {
 	tokenService *token.TokenService
 
 	//Mailer Service
-	mailerService *mailer.MailerService
+	mailerService mailerDomain.IMailerService
 }
 
 // NewContainer creates a new dependency injection container
-func NewContainer(db *sql.DB, newSes *sesv2.Client, jwtSecret, jwtRefreshSecretKey string, jwtExpiry, jwtRefreshExpiry time.Duration) *Container {
+func NewContainer(db *sql.DB, smtp *smtp.Smtp, jwtSecret, jwtRefreshSecretKey string, jwtExpiry, jwtRefreshExpiry time.Duration) *Container {
 	c := &Container{
 		db: db,
 	}
@@ -62,7 +62,7 @@ func NewContainer(db *sql.DB, newSes *sesv2.Client, jwtSecret, jwtRefreshSecretK
 	c.jwtManager = jwt.NewJWTManager(jwtSecret, jwtRefreshSecretKey, jwtExpiry, jwtRefreshExpiry)
 
 	// Initialize mailer
-	c.mailerService = mailer.NewMailerService(newSes)
+	c.mailerService = mailer.NewSmtpMailerService(smtp)
 
 	// Initialize repositories
 	c.userRepository = repository.NewPostgresUserRepository(db)

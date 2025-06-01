@@ -7,7 +7,7 @@ import (
 	"dailyalu-server/internal/security/jwt"
 	"dailyalu-server/internal/security/password"
 	"dailyalu-server/internal/security/token"
-	"dailyalu-server/internal/service/mailer"
+	mailerDomain "dailyalu-server/internal/service/mailer/domain"
 	"fmt"
 	"time"
 
@@ -15,18 +15,18 @@ import (
 )
 
 type userUseCase struct {
-	repo         repository.IUserRepository
-	jwtManager   *jwt.JWTManager
-	tokenService *token.TokenService
-	mailerService *mailer.MailerService
+	repo          repository.IUserRepository
+	jwtManager    *jwt.JWTManager
+	tokenService  *token.TokenService
+	mailerService mailerDomain.IMailerService
 }
 
 // NewUserUseCase creates a new user use case
-func NewUserUseCase(repo repository.IUserRepository, jwtManager *jwt.JWTManager, tokenService *token.TokenService, mailerService *mailer.MailerService) IUserUseCase {
+func NewUserUseCase(repo repository.IUserRepository, jwtManager *jwt.JWTManager, tokenService *token.TokenService, mailerService mailerDomain.IMailerService) IUserUseCase {
 	return &userUseCase{
-		repo:         repo,
-		jwtManager:   jwtManager,
-		tokenService: tokenService,
+		repo:          repo,
+		jwtManager:    jwtManager,
+		tokenService:  tokenService,
 		mailerService: mailerService,
 	}
 }
@@ -36,7 +36,7 @@ func (uc *userUseCase) Register(ctx context.Context, req *domain.RegisterRequest
 	if req.Password != req.ConfirmPassword {
 		return nil, ErrDifferentConfirmationPassword
 	}
-	
+
 	// Check if user already exists
 	existingUser, err := uc.repo.GetByEmail(req.Email)
 	if err != nil {
@@ -60,32 +60,38 @@ func (uc *userUseCase) Register(ctx context.Context, req *domain.RegisterRequest
 
 	now := time.Now()
 	user := &domain.User{
-		ID:                   uuid.New().String(),
-		Email:                req.Email,
-		Name:                 req.Name,
-		PasswordHash:         hashedPassword,
-		Status:               domain.UserStatusNotActive,
+		ID:                     uuid.New().String(),
+		Email:                  req.Email,
+		Name:                   req.Name,
+		PasswordHash:           hashedPassword,
+		Status:                 domain.UserStatusNotActive,
 		EmailVerificationToken: verificationToken,
-		Role:                 "user",
-		CreatedAt:            now,
-		UpdatedAt:            now,
+		Role:                   "user",
+		CreatedAt:              now,
+		UpdatedAt:              now,
 	}
 
 	if err := uc.repo.Create(user); err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	uc.tokenService.GenerateVerificationLink("https://dailyalu.mom/verify-email", verificationToken)
+	verificationLink := uc.tokenService.GenerateVerificationLink("https://dailyalu.mom/verify-email", verificationToken)
 	//verificationLink := uc.tokenService.GenerateVerificationLink("https://dailyalu.mom/verify-email", verificationToken)
-	
-	// Implement email sending logic here
-	// go func() {
-	// 	_, err = uc.mailerService.Send(ctx, "noreply@dailyalu.mom", req.Email, "Email Verification Link", "Hello, thank you for registering to Daily Alu. Verify your account in Daily Alu by clicking the following url "+verificationLink, "")
 
-	// 	if err != nil {
-	// 		fmt.Errorf("failed to send email")
-	// 	}
-	// }()
+	// Implement email sending logic here
+	go func() {
+		emailVerificationData := mailerDomain.EmailVerificationData{
+			To:              user.Email,
+			Name:            user.Name,
+			VerificationURL: verificationLink,
+		}
+
+		err = uc.mailerService.SendVerificationEmail(ctx, &emailVerificationData)
+
+		if err != nil {
+			fmt.Println("failed to send email, " + err.Error())
+		}
+	}()
 
 	return user, nil
 }
@@ -104,7 +110,7 @@ func (uc *userUseCase) VerifyEmail(ctx context.Context, token string) error {
 	}
 
 	user.Status = domain.UserStatusActive
-	user.EmailVerificationToken = "" // Clear the token after verification
+	//user.EmailVerificationToken = "" // Clear the token after verification
 	user.UpdatedAt = time.Now()
 
 	if err := uc.repo.Update(user); err != nil {
@@ -178,34 +184,34 @@ func (uc *userUseCase) UpdateUser(request *domain.UpdateUserRequest) (*domain.Us
 }
 
 func (uc *userUseCase) UpdatePassword(request *domain.UpdatePasswordRequest) error {
-  if request.NewPassword != request.ConfirmPassword {
-    return ErrDifferentConfirmationPassword
-  }
-  
-  user, err := uc.repo.GetByID(request.ID)
-  if err != nil {
-    return err
-  }
+	if request.NewPassword != request.ConfirmPassword {
+		return ErrDifferentConfirmationPassword
+	}
 
-  if user == nil {
-    return ErrUserNotFound
-  }
+	user, err := uc.repo.GetByID(request.ID)
+	if err != nil {
+		return err
+	}
 
-  if !password.Verify(request.OldPassword, user.PasswordHash) {
+	if user == nil {
+		return ErrUserNotFound
+	}
+
+	if !password.Verify(request.OldPassword, user.PasswordHash) {
 		return ErrInvalidOldPassword
 	}
 
-  hashedPassword, err := password.Hash(request.NewPassword)
+	hashedPassword, err := password.Hash(request.NewPassword)
 	if err != nil {
 		return fmt.Errorf("failed to hash password: %w", err)
 	}
 
-  err = uc.repo.UpdatePassword(request.ID, hashedPassword)
-  if err != nil {
-    return err
-  }
+	err = uc.repo.UpdatePassword(request.ID, hashedPassword)
+	if err != nil {
+		return err
+	}
 
-  return nil
+	return nil
 }
 
 func (uc *userUseCase) DeleteUser(id string) error {
@@ -213,69 +219,69 @@ func (uc *userUseCase) DeleteUser(id string) error {
 }
 
 func (uc *userUseCase) ForgotPassword(req *domain.ForgotPasswordRequest) error {
-    // Find user by email
-    user, err := uc.repo.GetByEmail(req.Email)
-    if err != nil {
-        return fmt.Errorf("failed to get user: %w", err)
-    }
-    if user == nil {
-        // For security, don't reveal if email exists
-        return nil
-    }
+	// Find user by email
+	user, err := uc.repo.GetByEmail(req.Email)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		// For security, don't reveal if email exists
+		return nil
+	}
 
-    // Generate reset token
-    resetToken, err := uc.tokenService.GenerateToken()
-    if err != nil {
-        return fmt.Errorf("failed to generate reset token: %w", err)
-    }
+	// Generate reset token
+	resetToken, err := uc.tokenService.GenerateToken()
+	if err != nil {
+		return fmt.Errorf("failed to generate reset token: %w", err)
+	}
 
-    // Update user with reset token
-    if err := uc.repo.UpdateForgotPasswordToken(user.ID, resetToken); err != nil {
-        return fmt.Errorf("failed to update user: %w", err)
-    }
+	// Update user with reset token
+	if err := uc.repo.UpdateForgotPasswordToken(user.ID, resetToken); err != nil {
+		return fmt.Errorf("failed to update user: %w", err)
+	}
 
-    // Generate reset link
-    //resetLink := uc.tokenService.GeneratePasswordResetLink("http://your-frontend-url", resetToken)
-    
-    // TODO: Send password reset email with resetLink
-    // Implement email sending logic here
+	// Generate reset link
+	//resetLink := uc.tokenService.GeneratePasswordResetLink("http://your-frontend-url", resetToken)
 
-    return nil
+	// TODO: Send password reset email with resetLink
+	// Implement email sending logic here
+
+	return nil
 }
 
 func (uc *userUseCase) ResetPassword(req *domain.ResetPasswordRequest) error {
-    if req.NewPassword != req.ConfirmPassword {
-        return ErrDifferentConfirmationPassword
-    }
+	if req.NewPassword != req.ConfirmPassword {
+		return ErrDifferentConfirmationPassword
+	}
 
-    // Find user by reset token
-    user, err := uc.repo.GetByResetPasswordToken(req.Token)
-    if err != nil {
-        return fmt.Errorf("failed to get user: %w", err)
-    }
-    if user == nil {
-        return ErrInvalidResetToken
-    }
+	// Find user by reset token
+	user, err := uc.repo.GetByResetPasswordToken(req.Token)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		return ErrInvalidResetToken
+	}
 
-    // Check token expiration
-    if uc.tokenService.IsTokenExpired(token.PasswordReset, user.ResetPasswordTokenRequestedAt) {
-        return ErrResetTokenExpired
-    }
+	// Check token expiration
+	if uc.tokenService.IsTokenExpired(token.PasswordReset, user.ResetPasswordTokenRequestedAt) {
+		return ErrResetTokenExpired
+	}
 
-    // Hash new password
-    hashedPassword, err := password.Hash(req.NewPassword)
-    if err != nil {
-        return fmt.Errorf("failed to hash password: %w", err)
-    }
+	// Hash new password
+	hashedPassword, err := password.Hash(req.NewPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
 
-    // Update user password and clear reset token
-    user.PasswordHash = hashedPassword
-    user.ResetPasswordToken = ""
-    user.UpdatedAt = time.Now()
-    
-    if err := uc.repo.Update(user); err != nil {
-        return fmt.Errorf("failed to update password: %w", err)
-    }
+	// Update user password and clear reset token
+	user.PasswordHash = hashedPassword
+	user.ResetPasswordToken = ""
+	user.UpdatedAt = time.Now()
 
-    return nil
+	if err := uc.repo.Update(user); err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	return nil
 }
