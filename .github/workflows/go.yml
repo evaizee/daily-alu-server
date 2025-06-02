@@ -98,6 +98,7 @@ jobs:
         Group=github-deploy
         WorkingDirectory=/opt/dailyalu-server
         ExecStart=/opt/dailyalu-server
+        Environment="CONFIG_PATH=/opt/dailyalu-server/config/config.yaml"
         Restart=always
         RestartSec=5
 
