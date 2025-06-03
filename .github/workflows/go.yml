@@ -110,6 +110,9 @@ jobs:
         [Install]
         WantedBy=multi-user.target
         EOF
+    
+    - name: Stop service before upload
+      run: ssh ec2 "sudo systemctl stop dailyalu-server.service"
 
     - name: Upload binary and service file
       run: |
