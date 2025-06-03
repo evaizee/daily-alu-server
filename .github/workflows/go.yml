@@ -97,10 +97,15 @@ jobs:
         User=github-deploy
         Group=github-deploy
         WorkingDirectory=/opt/dailyalu-server
-        ExecStart=/opt/dailyalu-server
+        ExecStart=/opt/dailyalu-server/dailyalu-server serve
         Environment="CONFIG_PATH=/opt/dailyalu-server/config/config.yaml"
         Restart=always
         RestartSec=5
+
+        # Logging configuration (recommended)
+        StandardOutput=journal
+        StandardError=journal
+        SyslogIdentifier=dailyalu-server
 
         [Install]
         WantedBy=multi-user.target
@@ -117,8 +122,8 @@ jobs:
       run: |
         ssh ec2 <<'EOF'
         sudo chmod +x /opt/dailyalu-server/dailyalu-server
-        # sudo systemctl daemon-reload
-        # sudo systemctl enable dailyalu-server.service
-        # sudo systemctl restart dailyalu-server.service
-        # sudo systemctl status dailyalu-server.service --no-pager
+        sudo systemctl daemon-reload
+        sudo systemctl enable dailyalu-server.service
+        sudo systemctl restart dailyalu-server.service
+        sudo systemctl status dailyalu-server.service --no-pager
         EOF

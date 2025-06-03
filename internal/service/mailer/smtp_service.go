@@ -7,9 +7,11 @@ import (
 	"dailyalu-server/pkg/mailer/smtp"
 	"fmt"
 	"html/template"
-	"path/filepath"
-	"runtime"
+	"embed"
 )
+
+//go:embed templates/html/*
+var emailTemplates embed.FS
 
 // MailerService handles email sending via SMTP
 type SmtpMailerService struct {
@@ -46,13 +48,9 @@ func (m *SmtpMailerService) SendVerificationEmail(ctx context.Context, emailVeri
 }
 
 func (m *SmtpMailerService) GetEmailHTML(data any, templateName string) (string, error) {
+	
 	// Get the template file path
-	_, filename, _, _ := runtime.Caller(0)
-	templateDir := filepath.Dir(filename)
-	templateFile := filepath.Join(templateDir, "templates/html", templateName)
-
-	// Parse the template
-	tmpl, err := template.ParseFiles(templateFile)
+	tmpl, err := template.ParseFS(emailTemplates, "templates/html/" + templateName)
 	if err != nil {
 		return "", err
 	}
