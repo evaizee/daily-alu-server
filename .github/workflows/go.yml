@@ -1,11 +1,10 @@
-# This workflow will build and test a golang project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
-
 name: Daily Alu Server CI/CD
 
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'release-v*'  # Match tags like "release-v1.2.3"
   pull_request:
     branches: [ "main" ]
 
@@ -13,120 +12,130 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.22.2'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22.2'
 
-    - name: Install Dependencies
-      run: go get .
+      - name: Install Dependencies
+        run: go get .
 
-    - name: Build
-      run: go build -v -o dailyalu-server ./main.go
+      - name: Build
+        run: go build -v -o dailyalu-server ./main.go
 
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: dailyalu-server
-        path: dailyalu-server
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dailyalu-server
+          path: dailyalu-server
 
   test:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.22.2'
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22.2'
 
-    - name: Install Dependencies
-      run: go get .
+      - name: Install Dependencies
+        run: go get .
 
-    - name: Run Utils Tests
-      run: |
-        go test -v -json dailyalu-server/internal/utils > test-results.json
+      - name: Run Utils Tests
+        run: go test -v -json dailyalu-server/internal/utils > utils-test-results.json
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      with:
-        name: test-results
-        path: test-results.json
+      - name: Run User Usecase Tests
+        run: go test -v -json dailyalu-server/internal/module/user/usecase > user-usecase-test-results.json
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            utils-test-results.json
+            user-usecase-test-results.json
 
   deploy:
     needs: [build, test]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # ✅ Only run deployment if:
+    # - this is a push to main
+    # - and it has a tag that starts with "release-v"
+    if: |
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/release-v') &&
+      contains(github.ref, 'refs/tags/release-v')
     environment:
       name: production
-    
+
     steps:
-    - name: Download build artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: dailyalu-server
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dailyalu-server
 
-    - name: Setup SSH
-      env:
-        SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-        SSH_HOST: ${{ secrets.EC2_HOST }}
-        SSH_USER: ${{ secrets.EC2_USER }}
-      run: |
-        mkdir -p ~/.ssh
-        echo "$SSH_KEY" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        cat >> ~/.ssh/config <<EOF
-        Host ec2
-          HostName $SSH_HOST
-          User $SSH_USER
-          IdentityFile ~/.ssh/id_rsa
-          StrictHostKeyChecking no
-        EOF
+      - name: Setup SSH
+        env:
+          SSH_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.EC2_HOST }}
+          SSH_USER: ${{ secrets.EC2_USER }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          cat >> ~/.ssh/config <<EOF
+          Host ec2
+            HostName $SSH_HOST
+            User $SSH_USER
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+          EOF
 
-    - name: Prepare systemd service file
-      run: |
-        cat > dailyalu-server.service <<EOF
-        [Unit]
-        Description=Daily Alu Server
-        After=network.target
+      - name: Prepare systemd service file
+        run: |
+          cat > dailyalu-server.service <<EOF
+          [Unit]
+          Description=Daily Alu Server
+          After=network.target
 
-        [Service]
-        User=github-deploy
-        Group=github-deploy
-        WorkingDirectory=/opt/dailyalu-server
-        ExecStart=/opt/dailyalu-server/dailyalu-server serve
-        Environment="CONFIG_PATH=/opt/dailyalu-server/config/config.yaml"
-        Restart=always
-        RestartSec=5
+          [Service]
+          User=github-deploy
+          Group=github-deploy
+          WorkingDirectory=/opt/dailyalu-server
+          ExecStart=/opt/dailyalu-server/dailyalu-server serve
+          Environment="CONFIG_PATH=/opt/dailyalu-server/config/config.yaml"
+          Restart=always
+          RestartSec=5
 
-        # Logging configuration (recommended)
-        StandardOutput=journal
-        StandardError=journal
-        SyslogIdentifier=dailyalu-server
+          # Logging configuration (recommended)
+          StandardOutput=journal
+          StandardError=journal
+          SyslogIdentifier=dailyalu-server
 
-        [Install]
-        WantedBy=multi-user.target
-        EOF
-    
-    - name: Stop service before upload
-      run: ssh ec2 "sudo systemctl stop dailyalu-server.service"
+          [Install]
+          WantedBy=multi-user.target
+          EOF
 
-    - name: Upload binary and service file
-      run: |
-        ssh ec2 "sudo mkdir -p /opt/dailyalu-server && sudo chown github-deploy:github-deploy /opt/dailyalu-server"
-        scp dailyalu-server ec2:/opt/dailyalu-server/dailyalu-server
-        scp dailyalu-server.service ec2:/tmp/dailyalu-server.service
-        ssh ec2 "sudo mv /tmp/dailyalu-server.service /etc/systemd/system/dailyalu-server.service"
+      - name: Stop service before upload
+        run: ssh ec2 "sudo systemctl stop dailyalu-server.service"
 
-    - name: Reload and restart service
-      run: |
-        ssh ec2 <<'EOF'
-        sudo chmod +x /opt/dailyalu-server/dailyalu-server
-        sudo systemctl daemon-reload
-        sudo systemctl enable dailyalu-server.service
-        sudo systemctl restart dailyalu-server.service
-        sudo systemctl status dailyalu-server.service --no-pager
-        EOF
+      - name: Upload binary and service file
+        run: |
+          ssh ec2 "sudo mkdir -p /opt/dailyalu-server && sudo chown github-deploy:github-deploy /opt/dailyalu-server"
+          scp dailyalu-server ec2:/opt/dailyalu-server/dailyalu-server
+          scp dailyalu-server.service ec2:/tmp/dailyalu-server.service
+          ssh ec2 "sudo mv /tmp/dailyalu-server.service /etc/systemd/system/dailyalu-server.service"
+
+      - name: Reload and restart service
+        run: |
+          ssh ec2 <<'EOF'
+          sudo chmod +x /opt/dailyalu-server/dailyalu-server
+          sudo systemctl daemon-reload
+          sudo systemctl enable dailyalu-server.service
+          sudo systemctl restart dailyalu-server.service
+          sudo systemctl status dailyalu-server.service --no-pager
+          EOF
