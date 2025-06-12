@@ -26,7 +26,7 @@ func NewSmtpMailerService(smtp *smtp.Smtp) domain.IMailerService {
 }
 
 func (m *SmtpMailerService) SendVerificationEmail(ctx context.Context, emailVerificationData *domain.EmailVerificationData) (err error) {
-	content, err := m.GetEmailHTML(emailVerificationData, "verification.html")
+	content, err := m.getEmailHTML(emailVerificationData, "verification.html")
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func (m *SmtpMailerService) SendVerificationEmail(ctx context.Context, emailVeri
 	return nil
 }
 
-func (m *SmtpMailerService) GetEmailHTML(data any, templateName string) (string, error) {
+func (m *SmtpMailerService) getEmailHTML(data any, templateName string) (string, error) {
 	
 	// Get the template file path
 	tmpl, err := template.ParseFS(emailTemplates, "templates/html/" + templateName)

@@ -21,5 +21,4 @@ type EmailVerificationData struct {
 
 type IMailerService interface {
 	SendVerificationEmail(ctx context.Context, data *EmailVerificationData) (error)
-	GetEmailHTML(data any, templateName string) (string, error)
 }
