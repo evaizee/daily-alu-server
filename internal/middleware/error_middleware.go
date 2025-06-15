@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"dailyalu-server/pkg/app_log"
+	"dailyalu-server/pkg/app_log/zap_log"
 	"dailyalu-server/pkg/response"
-	"fmt"
 
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -15,7 +14,7 @@ type ErrorMiddleware struct {
 
 func NewErrorMiddleware() *ErrorMiddleware {
 	return &ErrorMiddleware{
-		logger: app_log.Logger,
+		logger: zap_log.Logger,
 	}
 }
 
@@ -32,7 +31,16 @@ func (m *ErrorMiddleware) Handle() fiber.Handler {
 		reqID := c.Get("X-Request-ID", "unknown")
 		method := c.Method()
 		path := c.Path()
-		fmt.Println(err)
+		
+		var bodyCopy string
+		if c.Method() == fiber.MethodPost || c.Method() == fiber.MethodPut || c.Method() == fiber.MethodPatch {
+			bodyBytes := c.Body()
+			if len(bodyBytes) > 0 && len(bodyBytes) < 5*1024 { // limit to 5KB
+				bodyCopy = string(bodyBytes)
+			} else if len(bodyBytes) >= 5*1024 {
+				bodyCopy = "[body too large to log]"
+			}
+		}
 		
 		// Convert to our AppError type if it isn't already
 		var appErr *response.AppError
@@ -49,6 +57,7 @@ func (m *ErrorMiddleware) Handle() fiber.Handler {
 			zap.String("method", method),
 			zap.String("path", path),
 			zap.String("ip", c.IP()),
+			zap.String("body", bodyCopy),
 		}
 
 		// Add error metadata to log fields

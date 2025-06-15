@@ -3,7 +3,7 @@ package cmd
 import (
 	"dailyalu-server/internal/container"
 	"dailyalu-server/internal/router"
-	"dailyalu-server/pkg/app_log"
+	"dailyalu-server/pkg/app_log/zap_log"
 	"dailyalu-server/pkg/db/postgres"
 	"dailyalu-server/pkg/mailer/smtp"
 	"fmt"
@@ -19,9 +19,10 @@ var serveCmd = &cobra.Command{
 	Short: "Start the API server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		// Initialize logger
-		if err := app_log.Init(
+		if err := zap_log.Init(
 			viper.GetString("logging.level"),
 			viper.GetString("logging.format"),
+			viper.GetString("logging.file_directory"),
 		); err != nil {
 			return fmt.Errorf("failed to initialize logger: %w", err)
 		}

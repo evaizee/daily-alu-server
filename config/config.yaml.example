@@ -36,6 +36,7 @@ aws:
 logging:
   level: debug
   format: json
+  file_directory: /dailyalu-server/logs
 
 ratelimit:
   enabled: true
